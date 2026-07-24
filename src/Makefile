@@ -1,9 +1,28 @@
-# CMake を使うための Makefile
+# CMake を使うための Makefile (MSVC + Conan)
+BUILD_DIR := build/build
+COMPDB_CONAN_DIR := build/compiledb-conan
+COMPDB_DIR := build/compiledb
+
 compile:
-	mkdir -p build && \
-	cd build && \
-	cmake .. \
-		-DCMAKE_SYSTEM_NAME=Windows \
-		-DCMAKE_C_COMPILER=x86_64-w64-mingw32-gcc \
-		-DCMAKE_CXX_COMPILER=x86_64-w64-mingw32-g++ && \
-	make -j$(nproc)
+	cd .. && PATH="/c/Program Files (x86)/Microsoft Visual Studio/Installer:$$PATH" \
+		poetry run conan install . --output-folder=src/build -pr:h=profiles/msvc-release --build=missing
+	cmake -S . -B $(BUILD_DIR) -G "Visual Studio 17 2022" -A x64 -T v143 \
+		-DCMAKE_TOOLCHAIN_FILE=$(BUILD_DIR)/generators/conan_toolchain.cmake \
+		-DCMAKE_POLICY_DEFAULT_CMP0091=NEW
+	cmake --build $(BUILD_DIR) --config Release
+	$(MAKE) compdb
+
+# clangd 用の compile_commands.json を生成
+# Visual Studio ジェネレータは CMAKE_EXPORT_COMPILE_COMMANDS 非対応のため Ninja で別途生成する。
+# conan_toolchain.cmake は CMAKE_GENERATOR_PLATFORM=x64 を強制設定し Ninja と非互換のため、
+# Ninja 向けに generator=Ninja を指定した専用の toolchain を別 output-folder に生成する。
+# NOTE: cl.exe が PATH に必要なため、"Developer PowerShell for VS 2022" から実行すること。
+compdb:
+	cd .. && poetry run conan install . --output-folder=src/build/compiledb-conan \
+		-pr:h=profiles/msvc-release --build=missing \
+		-c tools.cmake.cmaketoolchain:generator=Ninja
+	cmake -E rm -rf $(COMPDB_DIR)
+	cmake -S . -B $(COMPDB_DIR) -G Ninja \
+		-DCMAKE_TOOLCHAIN_FILE=$(COMPDB_CONAN_DIR)/build/Release/generators/conan_toolchain.cmake \
+		-DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+	cmake -E copy $(COMPDB_DIR)/compile_commands.json ./compile_commands.json
