@@ -3,14 +3,11 @@ cmake_minimum_required(VERSION 3.20.0)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-set(CMAKE_BUILD_TYPE Release)
 project(MotionTrackingMKIIPlusforAviUtl2 CXX)
 
 add_library(${PROJECT_NAME} SHARED)
 
-if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-    add_definitions(-D_DEBUG)
-endif()
+target_compile_definitions(${PROJECT_NAME} PRIVATE $<$<CONFIG:Debug>:_DEBUG>)
 
 find_package(OpenCV REQUIRED)
 

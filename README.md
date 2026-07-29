@@ -12,8 +12,9 @@ AviUtl ExEdit2 object tracking (rubbish) plugin based on LKT/optical flow.
 
 ## Installation
 
-Dump the .aux2 and MotionTracking_model folder into  
-`your favorite folder where AviUtl loads aux2 file`
+Dump the .aux2 file into  
+`your favorite folder where AviUtl loads aux2 file`  
+Create the `MotionTracking_model` folder in the same directory as `MotionTrackingMKIIPlusforAviUtl2.aux2`.
 
 The menu name should be "MotionTracking MK-II Plus for AviUtl2"
 
@@ -122,7 +123,113 @@ Specifies the hue of the rectangle displayed in Object Selection and View Result
 
 ## Building From Source
 
-Please read `.github/workflows/build.yml` or [Dockerfile](https://github.com/nullruptr/MotionTracking_MK-II_Plus_for_AviUtl2/tree/master/docker).
+To cross-build with MinGW on Linux (Docker), please read `.github/workflows/build.yml` or the [Dockerfile](https://github.com/nullruptr/MotionTracking_MK-II_Plus_for_AviUtl2/tree/master/docker).
+
+Below are the steps to build with MSVC on Windows (both Release and Debug).
+
+### Prerequisites
+
+- Windows 10/11
+- [Visual Studio 2022](https://visualstudio.microsoft.com/) with the "Desktop development with C++" workload (MSVC v143 toolset, Windows 10/11 SDK)
+- [Git](https://git-scm.com/) (to fetch submodules)
+- [Python](https://www.python.org/) 3.13 or later
+- [Poetry](https://python-poetry.org/) (used to install Conan into a managed virtual environment)
+- [CMake](https://cmake.org/) 3.20 or later
+
+### 1. Clone the repository
+
+Make sure to fetch the `src/aviutl2_sdk` submodule as well.
+
+```bash
+git clone --recursive https://github.com/nullruptr/MotionTracking_MK-II_Plus_for_AviUtl2.git
+cd MotionTracking_MK-II_Plus_for_AviUtl2
+```
+
+If you already cloned without submodules:
+
+```bash
+git submodule update --init --recursive
+```
+
+### 2. Install Poetry
+
+Use the official installer. (See the [Poetry docs](https://python-poetry.org/docs/#installing-with-the-official-installer).)
+
+```powershell
+(Invoke-WebRequest -Uri https://install.python-poetry.org -UseBasicParsing).Content | py -
+```
+
+Confirm `poetry --version` works afterwards. Restart your shell (or add Poetry to `PATH`) if the command is not found.
+
+### 3. Set up Conan
+
+From the repository root, install the Poetry-managed virtual environment, which includes Conan:
+
+```bash
+poetry install
+```
+
+This installs `conan` (Conan 2.x), declared in `pyproject.toml`, into the virtual environment. Run subsequent Conan commands as `poetry run conan ...`.
+
+If this is your first time using Conan on this machine (i.e. `~/.conan2/profiles/default` doesn't exist yet), create the default build-context profile once:
+
+```bash
+poetry run conan profile detect --force
+```
+
+The host-context profiles actually used for the build are already provided in the repository, so you don't need to create them yourself:
+
+- Release: [`profiles/msvc-release`](profiles/msvc-release)
+- Debug: [`profiles/msvc-debug`](profiles/msvc-debug)
+
+### 4. Build with MSVC
+
+The first build also builds the dependency (OpenCV) from source, so it can take 30+ minutes. It's recommended to run the build from an "x64 Native Tools Command Prompt for VS 2022" or "Developer PowerShell for VS 2022".
+
+#### Setting up make
+
+For `make`, use [Make for Windows](https://gnuwin32.sourceforge.net/packages/make.htm).
+Under `Description`, download the `Setup` for `Complete package, except sources`.
+Once downloaded, run the installer to install make.
+After installation, make sure it's added to `PATH`.
+Once make is set up, run the following:
+
+```bash
+cd src
+
+# Release build
+make compile
+
+# Debug build
+make compile-debug
+```
+
+`make compile` also generates `compile_commands.json` for clangd (the `compdb` target) after building the Release binary.
+
+### 5. Build output
+
+On success, the `.aux2` file is generated at:
+
+- Release: `src/build/build/Release/MotionTrackingMKIIPlusforAviUtl2.aux2`
+- Debug: `src/build-debug/build/Debug/MotionTrackingMKIIPlusforAviUtl2.aux2`
+
+Place the generated `.aux2` file, along with the `MotionTracking_model` folder, into the directory where AviUtl ExEdit2 loads general plugins (see the "Installation" section above).
+
+### 6. Debugging
+
+Debug as follows:
+
+1. Copy the Debug build's `MotionTrackingMKIIPlusforAviUtl2.aux2` and `MotionTrackingMKIIPlusforAviUtl2.pdb` into the plugin loading directory
+2. Open `src/build-debug/build/MotionTrackingMKIIPlusforAviUtl2.sln` in Visual Studio
+3. In Solution Explorer, right-click `MotionTrackingMKIIPlusforAviUtl2`
+4. From the context menu, click `Set as Startup Project`
+5. Confirm that `MotionTrackingMKIIPlusforAviUtl2` is now shown in bold
+6. Right-click `MotionTrackingMKIIPlusforAviUtl2` again -> Properties, to open the `MotionTrackingMKIIPlusforAviUtl2 Property Pages` dialog
+7. In the tree on the left, open Configuration Properties -> Debugging
+8. Set Command to the full path of `aviutl2.exe` (with the default AviUtl2 install location, `C:\Program Files\AviUtl2\aviutl2.exe`)
+9. Set Working Directory to the folder containing `aviutl2.exe` (with the default AviUtl2 install location, `C:\Program Files\AviUtl2`)
+10. Apply the changes on the Property Pages dialog and close it
+11. Press F5 to start debugging
 
 ## Bug Report
 

@@ -1,5 +1,6 @@
 # CMake を使うための Makefile (MSVC + Conan)
 BUILD_DIR := build/build
+BUILD_DIR_DEBUG := build-debug/build
 COMPDB_CONAN_DIR := build/compiledb-conan
 COMPDB_DIR := build/compiledb
 
@@ -11,6 +12,15 @@ compile:
 		-DCMAKE_POLICY_DEFAULT_CMP0091=NEW
 	cmake --build $(BUILD_DIR) --config Release
 	$(MAKE) compdb
+
+# Debug 版のビルド (msvc-debug プロファイルを使用、build-debug/build に生成)
+compile-debug:
+	cd .. && PATH="/c/Program Files (x86)/Microsoft Visual Studio/Installer:$$PATH" \
+		poetry run conan install . --output-folder=src/build-debug -pr:h=profiles/msvc-debug --build=missing
+	cmake -S . -B $(BUILD_DIR_DEBUG) -G "Visual Studio 17 2022" -A x64 -T v143 \
+		-DCMAKE_TOOLCHAIN_FILE=$(BUILD_DIR_DEBUG)/generators/conan_toolchain.cmake \
+		-DCMAKE_POLICY_DEFAULT_CMP0091=NEW
+	cmake --build $(BUILD_DIR_DEBUG) --config Debug
 
 # clangd 用の compile_commands.json を生成
 # Visual Studio ジェネレータは CMAKE_EXPORT_COMPILE_COMMANDS 非対応のため Ninja で別途生成する。

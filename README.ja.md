@@ -12,7 +12,8 @@ AviUtl ExEdit2 でオブジェクトトラッキングを行うプラグイン
 
 ## インストール
 
-zip内の.aux2ファイルとMotionTracking_modelディレクトリを`AviUtl ExEdit2 が汎用プラグインを読み込むお好きなディレクトリ`に置いてください。
+zip内の.aux2ファイルを`AviUtl ExEdit2 が汎用プラグインを読み込むお好きなディレクトリ`に置いてください。
+MotionTracking_modelディレクトリは、`MotionTrackingMKIIPlusforAviUtl2.aux2`が存在するディレクトリと同じ場所に新規作成してください。
 
 AviUtl ExEdit2 の`表示`メニューに"MotionTracking MK-II Plus for AviUtl2"が追加されていたら成功です。
 
@@ -120,7 +121,114 @@ Object SelectionやView Resultで表示される矩形の色相を指定しま�
 
 ## ソースからのビルド
 
-`.github/workflows/build.yml`または、[Dockerfile](https://github.com/nullruptr/MotionTracking_MK-II_Plus_for_AviUtl2/tree/master/docker)をご覧ください。
+Linux(Docker)上でMinGWを用いてビルドする場合は、`.github/workflows/build.yml`または、[Dockerfile](https://github.com/nullruptr/MotionTracking_MK-II_Plus_for_AviUtl2/tree/master/docker)をご覧ください。
+
+以下では、Windows上でMSVCを用いてビルドする手順(Release版/Debug版共通)を説明します。
+
+### 必要なもの
+
+- Windows 10/11
+- [Visual Studio 2022](https://visualstudio.microsoft.com/ja/) (「C++によるデスクトップ開発」ワークロード。MSVC v143 ツールセット、Windows 10/11 SDK を含む)
+- [Git](https://git-scm.com/)(サブモジュール取得のため)
+- [Python](https://www.python.org/) 3.13 以上
+- [Poetry](https://python-poetry.org/)(Pythonの依存関係・仮想環境管理。この後の手順でConanをインストールするために使用)
+- [CMake](https://cmake.org/) 3.20 以上
+
+### 1. リポジトリの取得
+
+サブモジュール(`src/aviutl2_sdk`)を含めて取得してください。
+
+```bash
+git clone --recursive https://github.com/nullruptr/MotionTracking_MK-II_Plus_for_AviUtl2.git
+cd MotionTracking_MK-II_Plus_for_AviUtl2
+```
+
+すでにサブモジュールなしでクローン済みの場合は、以下で取得できます。
+
+```bash
+git submodule update --init --recursive
+```
+
+### 2. Poetry のインストール
+
+公式のインストーラーを使用してインストールしてください。([Poetry公式ドキュメント](https://python-poetry.org/docs/#installing-with-the-official-installer))
+
+```powershell
+(Invoke-WebRequest -Uri https://install.python-poetry.org -UseBasicParsing).Content | py -
+```
+
+インストール後、`poetry --version` が実行できることを確認してください。PATHが通っていない場合は、シェルを再起動するか、PATHを追加してください。
+
+### 3. Conan のセットアップ
+
+リポジトリのルートで、以下を実行し、Poetryの仮想環境(Conanを含む)を作成します。
+
+```bash
+poetry install
+```
+
+これにより、`pyproject.toml`に記載されている`conan`(Conan 2系)が仮想環境内にインストールされます。以降のConanコマンドは`poetry run conan ...`のように実行します。
+
+Conanを初めて使用する場合(`~/.conan2/profiles/default`が存在しない場合)は、ビルド環境用(build context用)のデフォルトプロファイルを1度だけ作成してください。
+
+```bash
+poetry run conan profile detect --force
+```
+
+なお、実際にビルドで使用するホスト側(host context)のプロファイルは、リポジトリに同梱されている以下のファイルを使用します(手動での作成は不要です)。
+
+- Release版: [`profiles/msvc-release`](profiles/msvc-release)
+- Debug版: [`profiles/msvc-debug`](profiles/msvc-debug)
+
+### 4. MSVC でのビルド
+
+依存ライブラリ(OpenCV)のビルドを含むため、初回は時間がかかります(30分以上かかる場合があります)。
+ビルドは「x64 Native Tools Command Prompt for VS 2022」または「Developer PowerShell for VS 2022」から実行することを推奨します。
+
+#### make のセットアップ
+
+make は、[Make for Windows](https://gnuwin32.sourceforge.net/packages/make.htm)を利用します。
+インストールするものは、`Description`にある、`Complete package, except sources`の、`Setup` です。
+ダウンロードが完了したら、インストーラから make をインストールします。
+インストール後、パスを通してセットアップしてください。
+make のセットアップ完了後、下記内容を実行します。
+
+```bash
+cd src
+
+# Release 版
+make compile
+
+# Debug 版
+make compile-debug
+```
+
+`make compile` は、Release版のビルドに加えて、clangd 用の `compile_commands.json` の生成(`compdb`)も行います。
+
+### 5. ビルド成果物
+
+ビルドが成功すると、以下の場所に`.aux2`ファイルが生成されます。
+
+- Release版: `src/build/build/Release/MotionTrackingMKIIPlusforAviUtl2.aux2`
+- Debug版: `src/build-debug/build/Debug/MotionTrackingMKIIPlusforAviUtl2.aux2`
+
+生成された`.aux2`ファイルと、`MotionTracking_model`ディレクトリを、AviUtl ExEdit2 が汎用プラグインを読み込むディレクトリに配置してください(詳細は上記「インストール」の項を参照)。
+
+### 6. デバッグの方法
+
+デバッグは以下の手順で行います。
+
+1. ビルドで生成された Debug版の `MotionTrackingMKIIPlusforAviUtl2.aux2`と`MotionTrackingMKIIPlusforAviUtl2.pdb`をプラグインを読み込むディレクトリにコピー
+2. `src/build-debug/build/MotionTrackingMKIIPlusforAviUtl2.sln` をVisual Studioで開く
+3. ソリューションエクスプローラーで、`MotionTrackingMKIIPlusforAviUtl2`を右クリック
+4. 右クリックメニューより、`スタートアップ プロジェクトに設定` をクリック
+5. `MotionTrackingMKIIPlusforAviUtl2`が太字になっていることを確認する
+6. 再度、`MotionTrackingMKIIPlusforAviUtl2`を右クリック -> プロパティ -> `MotionTrackingMKIIPlusforAviUtl2 プロパティ ページ` を開く
+7. 画面左のツリーを、構成プロパティ -> デバッグの順で開く
+8. コマンドに `aviutl2.exe` が存在するフルパスを入力(AviUtl2 のデフォルト設定なら `C:\Program Files\AviUtl2\aviutl2.exe`)
+9. 作業ディレクトリに `aviutl2.exe` が存在するフォルダパスを入力(AviUtl2 のデフォルト設定なら、 `C:\Program Files\AviUtl2`)
+10. `プロパティ ページ` 変更内容を適用し、閉じる
+11. F5 でデバッグを開始
 
 ## バグ報告
 
