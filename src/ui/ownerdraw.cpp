@@ -7,7 +7,9 @@ LRESULT OnCtlColor(WPARAM wparam, const SystemColors& colors) {
     HDC hdc = (HDC)wparam;
     SetTextColor(hdc, AviUtl2ColorToColorRef(colors.text));
     SetBkColor(hdc, AviUtl2ColorToColorRef(colors.background));
-    return (LRESULT)CreateSolidBrush(AviUtl2ColorToColorRef(colors.background));
+
+    static HBRUSH s_bg_brush = CreateSolidBrush(AviUtl2ColorToColorRef(colors.background));
+    return (LRESULT)s_bg_brush;
 }
 
 LRESULT OnDrawItem(LPARAM lparam, const SystemColors& colors) {
