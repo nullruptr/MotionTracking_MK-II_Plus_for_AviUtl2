@@ -7,11 +7,11 @@
 #include "aviutl2_sdk/logger2.h"
 #include "opencv2/video.hpp"
 #include "utils.hpp"
+#include "main.hpp"
 
 extern LOG_HANDLE* logger;
 extern bool getImageFromAUX;
 extern cv::Mat ocvImage;
-extern int hueValue;
 extern bool finishedFilter;
 extern std::mutex mtx;
 extern std::condition_variable cov;
@@ -33,7 +33,7 @@ bool func_proc_video(FILTER_PROC_VIDEO* video) {
         if (hasResult) {
             if (track_found[video->object->frame])
             {
-                cv::Scalar s = utils::hue_to_scalar(hueValue) / 2;
+                cv::Scalar s = utils::hue_to_scalar(g_frame->hueValue()) / 2;
                 s[3] = 255;
                 cv::rectangle(image, track_result[video->object->frame], s, 2, 1);
                 cv::putText(image, "OK", cv::Point(0, 50), cv::FONT_HERSHEY_PLAIN, 2.0, cv::Scalar(0, 255, 0, 255), 2);

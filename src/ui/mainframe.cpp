@@ -10,6 +10,7 @@
 #include <winuser.h>
 
 extern FILTER_PLUGIN_TABLE filter;
+extern MainFrame* g_frame; // main.cpp で定義
 
 static std::string modelDir;
 
@@ -22,7 +23,6 @@ bool finishedFilter = false;
 std::mutex mtx;
 std::condition_variable cov;
 cv::Mat ocvImage;
-int hueValue = 180;
 // --
 
 // Obj Selection
@@ -143,7 +143,7 @@ static void update_object_selection_window(int x1, int y1, int x2, int y2)
     if (rect.area() > 0) {
         renderFrame = displayFrame(rect);
         renderFrame /= 2;
-        renderFrame += utils::hue_to_scalar(hueValue) / 2;
+        renderFrame += utils::hue_to_scalar(g_frame->hueValue()) / 2;
     }
     cv::imshow("Object Selection", displayFrame);
 }
@@ -270,9 +270,9 @@ LRESULT CALLBACK MainFrame::wnd_proc(HWND hwnd, UINT message, WPARAM wparam, LPA
         case WM_HSCROLL:
         case WM_VSCROLL: {
             if ((HWND)lparam == GetDlgItem(hwnd, (int)IDC_Button::HueTrackbar)) {
-                hueValue = SendMessage((HWND)lparam, TBM_GETPOS, 0, 0);
+                self->m_hueValue = static_cast<int>(SendMessage((HWND)lparam, TBM_GETPOS, 0, 0));
                 wchar_t buffer[16];
-                swprintf_s(buffer, L"%d", hueValue);
+                swprintf_s(buffer, L"%d", self->m_hueValue);
                 SetWindowText(GetDlgItem(hwnd, (int)IDC_Button::HueValue), buffer);
             }
             break;
@@ -451,7 +451,7 @@ LRESULT CALLBACK MainFrame::wnd_proc(HWND hwnd, UINT message, WPARAM wparam, LPA
                     self->m_during_operation = true;
                     EnableOperationButtons(hwnd, FALSE);
                     logger->info(logger, L"SelectObject: start");
-                    self->m_tracker.SelectObject(self->m_edit_handle, hueValue);
+                    self->m_tracker.SelectObject(self->m_edit_handle, self->m_hueValue);
                     SetFocus(nullptr);
                     self->m_during_operation = false;
                     EnableOperationButtons(hwnd, TRUE);

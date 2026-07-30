@@ -41,6 +41,7 @@ public:
     MainFrame(HINSTANCE hInst, HOST_APP_TABLE* host, EDIT_HANDLE* edit_handle);
     HWND      hwnd()  const { return m_hwnd; }
     HINSTANCE hInst() const { return m_hInst; }
+    int       hueValue() const { return m_hueValue; }
 
 private:
     // this を渡したらクラッシュするため
@@ -65,7 +66,7 @@ private:
     LOG_HANDLE*     m_logger     = nullptr;
     CONFIG_HANDLE*  m_config     = nullptr;
     std::string     m_modelDir;
-    LPARAM m_hueValue;
+    int             m_hueValue   = 180;
 
     // Tracker インスタンス
     Tracker m_tracker;
