@@ -98,4 +98,5 @@ private:
     cv::Rect2d m_boundingBox;
     bool       m_selectObj = false;
     bool       m_startSel  = false;
+    bool       m_cv3_err   = false;
 };

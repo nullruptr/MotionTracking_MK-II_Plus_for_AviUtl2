@@ -6,6 +6,7 @@
 #include <string>
 #include <windows.h>
 #include <filesystem>
+#include <winuser.h>
 
 extern LOG_HANDLE* logger;
 extern CONFIG_HANDLE* config;
@@ -28,7 +29,6 @@ bool Tracker::SelectObject(EDIT_HANDLE* edit_handle, int hueValue) {
 
 
     // フレーム選択範囲を取得
-    // call_read_section_param を使うとなぜかクラッシュする
     edit_handle->call_edit_section_param(&m_range, [](void* param, EDIT_SECTION* edit) {
         auto* r = static_cast<RangeResult*>(param);
         r->start = edit->info->select_range_start;
@@ -249,10 +249,13 @@ bool Tracker::Analyze(EDIT_HANDLE* edit, TrackingMethod method) {
             edit->wait_rendering_task();
 
             if (!track_init) {
-                // 追跡対象登録
-                tracker->init(image, box);
-                // 初回は必ず成功
-                track_init = true;
+                try {
+                    tracker->init(image, box);
+                } catch(...) {
+                    MessageBoxA(NULL, "Error initializing tracker", "OpenCV3 Error", MB_OK | MB_TOPMOST);
+                    m_cv3_err = true;
+                    break;
+                }
                 m_track_found.push_back(true);
             } else {
                 if (tracker->update(image, box)) {
@@ -268,7 +271,7 @@ bool Tracker::Analyze(EDIT_HANDLE* edit, TrackingMethod method) {
             if (new_stamp != prev_stamp)
                 m_progress_fps = 1.0 / ((new_stamp - prev_stamp) / cv::getTickFrequency());
             prev_stamp = new_stamp;
-            logger->info(logger, std::format(L"Analyzing: {}/{}", m_progress_current.load(), m_progress_total.load()).c_str());
+            // logger->info(logger, std::format(L"Analyzing: {}/{}", m_progress_current.load(), m_progress_total.load()).c_str());
         }
 
     int64 end_time = cv::getTickCount();
@@ -279,15 +282,20 @@ bool Tracker::Analyze(EDIT_HANDLE* edit, TrackingMethod method) {
     sprintf_s(msg, "Tracking Completed!\nAverage %.2f fps",
               (m_range.end - m_range.start) / run_time);
 
-    if (m_cancel) {
-        m_cancel = false;
-        // xする前に、ダイアログウィンドウをクリックしたり移動させたりすると後ろの方に行くので、MB_TOPMOSTしてます
-        MessageBoxA(nullptr, "Tracking Canceled", "INFO", MB_OK | MB_TOPMOST);
+    if (!m_cv3_err) {
+        if (m_cancel) {
+            m_cancel = false;
+            // xする前に、ダイアログウィンドウをクリックしたり移動させたりすると後ろの方に行くので、MB_TOPMOSTしてます
+            MessageBoxA(nullptr, "Tracking Canceled", "INFO", MB_OK | MB_TOPMOST);
+        } else {
+            m_cancel = false;
+            MessageBoxA(nullptr, msg, "Tracking Completed!", MB_OK | MB_TOPMOST);
+        }
     } else {
+        m_cv3_err = false;
+        // 初期化失敗msg表示時に、progress dlg で x を押すと、m_cancel = true になり、次にAnalyze を押したらキャンセルになるので、一緒に false
         m_cancel = false;
-        MessageBoxA(nullptr, msg, "Tracking Completed!", MB_OK | MB_TOPMOST);
     }
-
     }).detach();
     return true;
 }
