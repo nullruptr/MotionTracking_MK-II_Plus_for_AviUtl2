@@ -1,6 +1,8 @@
 #include "mainframe.hpp"
 #include "ownerdraw.hpp"
 #include "constants.hpp"
+#include "utils.hpp"
+#include <winuser.h>
 
 extern LOG_HANDLE*    logger;
 extern CONFIG_HANDLE* config;
@@ -21,6 +23,13 @@ void MainFrame::CreateControls() {
     m_colors.text             = config->get_color_code(config, "Text");
     m_colors.textDisable      = config->get_color_code(config, "TextDisable");
 
+    // AviUtl2側が「拡大サイズ表示」の時だけ、config->get_font_info/get_layout_sizeの戻り値が
+    // 実DPI/96の比率で既に拡大されて返ってくる。その場合だけ、自前で決め打ちしている
+    // 座標・サイズも同じ比率でスケールしないと、文字だけ大きくなりレイアウトが崩れる。
+    bool high_dpi = utils::is_high_dpi_mode(m_hInst);
+    UINT dpi = GetDpiForWindow(m_hwnd);
+    auto DIP = [high_dpi, dpi](int dip) { return high_dpi ? utils::FromDIP(dip, dpi) : dip; };
+
     // フォント情報の取得とフォント作成
     FONT_INFO* font_info = config->get_font_info(config, "Control");
     LOGFONT logfont = {};
@@ -34,14 +43,14 @@ void MainFrame::CreateControls() {
     HFONT hfont = CreateFontIndirect(&logfont);
 
     int item_height = config->get_layout_size(config, "SettingItemHeight");
-    int y_pos = 10;
+    int y_pos = DIP(10);
 
     // メニューバーが使えなかったので、代替
     // File ボタン
     HWND button_file = CreateWindowEx(
         0, WC_BUTTON, L"File",
         WS_VISIBLE | WS_CHILD | BS_OWNERDRAW,
-        10, y_pos, 145, item_height,
+        DIP(10), y_pos, DIP(145), item_height,
         m_hwnd, (HMENU)IDC_Toolbar::File, m_hInst, nullptr);
     SendMessage(button_file, WM_SETFONT, (WPARAM)hfont, TRUE);
 
@@ -49,11 +58,11 @@ void MainFrame::CreateControls() {
     HWND button_info = CreateWindowEx(
         0, WC_BUTTON, L"Info",
         WS_VISIBLE | WS_CHILD | BS_OWNERDRAW,
-        165, y_pos, 145, item_height,
+        DIP(165), y_pos, DIP(145), item_height,
         m_hwnd, (HMENU)IDC_Toolbar::Info, m_hInst, nullptr);
     SendMessage(button_info, WM_SETFONT, (WPARAM)hfont, TRUE);
 
-    y_pos += item_height + 30;
+    y_pos += item_height + DIP(30);
 
     // Tracking Method ラベルを作成
     HWND label_track = CreateWindowEx(
@@ -61,7 +70,7 @@ void MainFrame::CreateControls() {
         WC_STATIC,
         config->translate(config, L"Method"),
         WS_VISIBLE | WS_CHILD,
-        10, y_pos, 100, item_height,
+        DIP(10), y_pos, DIP(100), item_height,
         m_hwnd,
         (HMENU)-1,
         m_hInst,
@@ -74,7 +83,7 @@ void MainFrame::CreateControls() {
         WC_COMBOBOX,
         nullptr,
         WS_VISIBLE | WS_CHILD | CBS_DROPDOWNLIST | CBS_OWNERDRAWFIXED | CBS_HASSTRINGS,
-        75, y_pos, 195, 200, // ドロップダウンが開くように高さを大きめに確保
+        DIP(75), y_pos, DIP(195), DIP(200), // ドロップダウンが開くように高さを大きめに確保
         m_hwnd,
         (HMENU)IDC_Button::TrackingMethodCombo,
         m_hInst,
@@ -85,7 +94,7 @@ void MainFrame::CreateControls() {
     }
     SendMessage(combo_track, CB_SETCURSEL, 2, 0); // Default to CSRT
 
-    y_pos += item_height + 5;
+    y_pos += item_height + DIP(5);
 
     // Hueラベルを作成
     HWND label_hue = CreateWindowEx(
@@ -93,7 +102,7 @@ void MainFrame::CreateControls() {
         WC_STATIC,
         config->translate(config, L"Hue"),
         WS_VISIBLE | WS_CHILD,
-        10, y_pos, 60, item_height,
+        DIP(10), y_pos, DIP(60), item_height,
         m_hwnd,
         (HMENU)-1,
         m_hInst,
@@ -106,7 +115,7 @@ void MainFrame::CreateControls() {
         TRACKBAR_CLASS,
         L"Hue",
         WS_VISIBLE | WS_CHILD,
-        75, y_pos, 205, item_height,
+        DIP(75), y_pos, DIP(205), item_height,
         m_hwnd,
         (HMENU)IDC_Button::HueTrackbar,
         m_hInst,
@@ -121,14 +130,14 @@ void MainFrame::CreateControls() {
         WC_STATIC,
         L"180",
         WS_VISIBLE | WS_CHILD | SS_CENTER,
-        285, y_pos, 25, item_height,
+        DIP(285), y_pos, DIP(25), item_height,
         m_hwnd,
         (HMENU)IDC_Button::HueValue,
         m_hInst,
         nullptr);
     SendMessage(hue_value_display, WM_SETFONT, (WPARAM)hfont, TRUE);
 
-    y_pos += item_height + 5;
+    y_pos += item_height + DIP(5);
 
     // Select Object ボタンを作成
     HWND button0 = CreateWindowEx(
@@ -136,14 +145,14 @@ void MainFrame::CreateControls() {
         WC_BUTTON,
         config->translate(config, L"Select Object"),
         WS_VISIBLE | WS_CHILD | BS_OWNERDRAW,
-        10, y_pos, 300, item_height,
+        DIP(10), y_pos, DIP(300), item_height,
         m_hwnd,
         (HMENU)IDC_Button::SelectObject,
         m_hInst,
         nullptr);
     SendMessage(button0, WM_SETFONT, (WPARAM)hfont, TRUE);
 
-    y_pos += item_height + 5;
+    y_pos += item_height + DIP(5);
 
     // Analyze ボタンを作成
     HWND button1 = CreateWindowEx(
@@ -151,14 +160,14 @@ void MainFrame::CreateControls() {
         WC_BUTTON,
         config->translate(config, L"Analyze"),
         WS_VISIBLE | WS_CHILD | BS_OWNERDRAW,
-        10, y_pos, 300, item_height,
+        DIP(10), y_pos, DIP(300), item_height,
         m_hwnd,
         (HMENU)IDC_Button::Analyze,
         m_hInst,
         nullptr);
     SendMessage(button1, WM_SETFONT, (WPARAM)hfont, TRUE);
 
-    y_pos += item_height + 5;
+    y_pos += item_height + DIP(5);
 
     // View Result ボタンを作成
     HWND button_view_result = CreateWindowEx(
@@ -166,14 +175,14 @@ void MainFrame::CreateControls() {
         WC_BUTTON,
         config->translate(config, L"View Result"),
         WS_VISIBLE | WS_CHILD | BS_OWNERDRAW,
-        10, y_pos, 300, item_height,
+        DIP(10), y_pos, DIP(300), item_height,
         m_hwnd,
         (HMENU)IDC_Button::ViewResult,
         m_hInst,
         nullptr);
     SendMessage(button_view_result, WM_SETFONT, (WPARAM)hfont, TRUE);
 
-    y_pos += item_height + 5;
+    y_pos += item_height + DIP(5);
 
     // Clear Result ボタンを作成
     HWND button2 = CreateWindowEx(
@@ -181,14 +190,14 @@ void MainFrame::CreateControls() {
         WC_BUTTON,
         config->translate(config, L"Clear Result"),
         WS_VISIBLE | WS_CHILD | BS_OWNERDRAW,
-        10, y_pos, 300, item_height,
+        DIP(10), y_pos, DIP(300), item_height,
         m_hwnd,
         (HMENU)IDC_Button::ClearResult,
         m_hInst,
         nullptr);
     SendMessage(button2, WM_SETFONT, (WPARAM)hfont, TRUE);
 
-    y_pos += item_height + 5;
+    y_pos += item_height + DIP(5);
 
     // As Sub-filter/部分フィルター? チェックボックスを作成
     HWND check_sub_filter = CreateWindowEx(
@@ -196,14 +205,14 @@ void MainFrame::CreateControls() {
         WC_BUTTON,
         config->translate(config, L"As Sub-filter/部分フィルター?"),
         WS_VISIBLE | WS_CHILD | BS_OWNERDRAW,
-        10, y_pos, 300, item_height,
+        DIP(10), y_pos, DIP(300), item_height,
         m_hwnd,
         (HMENU)IDC_Button::AsSubFilter,
         m_hInst,
         nullptr);
     SendMessage(check_sub_filter, WM_SETFONT, (WPARAM)hfont, TRUE);
 
-    y_pos += item_height + 5;
+    y_pos += item_height + DIP(5);
 
     // Invert Position チェックボックスを作成
     HWND check_invert = CreateWindowEx(
@@ -211,14 +220,14 @@ void MainFrame::CreateControls() {
         WC_BUTTON,
         config->translate(config, L"Invert Position"),
         WS_VISIBLE | WS_CHILD | BS_OWNERDRAW,
-        10, y_pos, 300, item_height,
+        DIP(10), y_pos, DIP(300), item_height,
         m_hwnd,
         (HMENU)IDC_Button::InvertPosition,
         m_hInst,
         nullptr);
     SendMessage(check_invert, WM_SETFONT, (WPARAM)hfont, TRUE);
 
-    y_pos += item_height + 5;
+    y_pos += item_height + DIP(5);
 
     // Ignore Aspect Ratio チェックボックスを作成
     HWND check_ignore_aspect = CreateWindowEx(
@@ -226,7 +235,7 @@ void MainFrame::CreateControls() {
         WC_BUTTON,
         config->translate(config, L"Ignore Aspect Ratio"),
         WS_VISIBLE | WS_CHILD | BS_OWNERDRAW,
-        10, y_pos, 300, item_height,
+        DIP(10), y_pos, DIP(300), item_height,
         m_hwnd,
         (HMENU)IDC_Button::IgnoreAspectRatio,
         m_hInst,
@@ -234,7 +243,7 @@ void MainFrame::CreateControls() {
     SetWindowLongPtr(check_ignore_aspect, GWLP_USERDATA, 1);
     SendMessage(check_ignore_aspect, WM_SETFONT, (WPARAM)hfont, TRUE);
 
-    y_pos += item_height + 5;
+    y_pos += item_height + DIP(5);
 
     // Insert Object ボタンを作成
     HWND button_save = CreateWindowEx(
@@ -242,12 +251,12 @@ void MainFrame::CreateControls() {
         WC_BUTTON,
         config->translate(config, L"Insert Object"),
         WS_VISIBLE | WS_CHILD | BS_OWNERDRAW,
-        10, y_pos, 300, item_height,
+        DIP(10), y_pos, DIP(300), item_height,
         m_hwnd,
         (HMENU)IDC_Button::InsertObject,
         m_hInst,
         nullptr);
     SendMessage(button_save, WM_SETFONT, (WPARAM)hfont, TRUE);
 
-    y_pos += item_height + 5;
+    y_pos += item_height + DIP(5);
 }

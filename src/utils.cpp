@@ -31,4 +31,22 @@ std::string get_model_dir(HINSTANCE hInst) {
     return {};
     }
 
+bool is_high_dpi_mode(HINSTANCE hInst) {
+    wchar_t path[MAX_PATH * 2];
+    if (!GetModuleFileNameW(hInst, path, static_cast<DWORD>(sizeof(path) / sizeof(path[0])))) {
+        return false;
+    }
+    wchar_t* p = wcsrchr(path, L'\\');
+    if (!p) {
+        return false;
+    }
+    *(p + 1) = L'\0';
+    wcscat_s(path, L"..\\aviutl2.ini");
+    return GetPrivateProfileIntW(L"Direct3D", L"HighDpiMode", 0, path) != 0;
+}
+
+int FromDIP(int dip, UINT dpi) {
+    return MulDiv(dip, dpi, 96);
+}
+
 }

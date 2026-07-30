@@ -1,6 +1,7 @@
 #include "progress_dlg.hpp"
 #include "constants.hpp"
 #include "aviutl2_sdk/logger2.h"
+#include "utils.hpp"
 #include <commctrl.h>
 #include <format>
 
@@ -86,16 +87,21 @@ ProgressDlg* ProgressDlg::Create(HWND parent, Tracker* tracker, HINSTANCE hInst,
     dlg->m_methodName = methodName;
     dlg->m_parent     = parent;
 
+    // このウィンドウはregister_window_clientを介さない独立ウィンドウのため、
+    // AviUtl2本体による自動DPIスケーリングが効かない。自前でスケールする。
+    UINT dpi = GetDpiForWindow(parent);
+    auto DIP = [dpi](int dip) { return utils::FromDIP(dip, dpi); };
+
     HWND hwnd = CreateWindowExW(
         WS_EX_DLGMODALFRAME | WS_EX_APPWINDOW,
         CLASS_NAME,
         L"Analyzing...",
         WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU,
-        CW_USEDEFAULT, CW_USEDEFAULT, 360, 300,
+        CW_USEDEFAULT, CW_USEDEFAULT, DIP(360), DIP(300),
         parent, nullptr, hInst, dlg);
 
     HFONT hfont = CreateFontW(
-        -12, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE,
+        -DIP(12), 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE,
         DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
         DEFAULT_QUALITY, DEFAULT_PITCH | FF_DONTCARE,
         L"Yu Gothic UI");
@@ -103,14 +109,14 @@ ProgressDlg* ProgressDlg::Create(HWND parent, Tracker* tracker, HINSTANCE hInst,
     dlg->m_label = CreateWindowExW(
         0, WC_STATIC, L"Initializing...",
         WS_VISIBLE | WS_CHILD,
-        10, 12, 330, 20,
+        DIP(10), DIP(12), DIP(330), DIP(20),
         hwnd, nullptr, hInst, nullptr);
     SendMessage(dlg->m_label, WM_SETFONT, (WPARAM)hfont, TRUE);
 
     dlg->m_progress = CreateWindowExW(
         0, PROGRESS_CLASS, nullptr,
         WS_VISIBLE | WS_CHILD | PBS_SMOOTH,
-        10, 40, 330, 18,
+        DIP(10), DIP(40), DIP(330), DIP(18),
         hwnd, nullptr, hInst, nullptr);
 
     // 親ウィンドウの中央に配置

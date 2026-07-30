@@ -7,6 +7,7 @@
 #include <commdlg.h>
 #include <commctrl.h>
 #include <shellapi.h>
+#include <winuser.h>
 
 extern FILTER_PLUGIN_TABLE filter;
 
