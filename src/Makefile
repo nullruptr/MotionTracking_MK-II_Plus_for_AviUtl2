@@ -34,5 +34,6 @@ compdb:
 	cmake -E rm -rf $(COMPDB_DIR)
 	cmake -S . -B $(COMPDB_DIR) -G Ninja \
 		-DCMAKE_TOOLCHAIN_FILE=$(COMPDB_CONAN_DIR)/build/Release/generators/conan_toolchain.cmake \
+		-DCMAKE_BUILD_TYPE=Release \
 		-DCMAKE_EXPORT_COMPILE_COMMANDS=ON
 	cmake -E copy $(COMPDB_DIR)/compile_commands.json ./compile_commands.json
