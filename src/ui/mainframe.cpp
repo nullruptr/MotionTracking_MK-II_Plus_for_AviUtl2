@@ -491,7 +491,7 @@ LRESULT CALLBACK MainFrame::wnd_proc(HWND hwnd, UINT message, WPARAM wparam, LPA
                     self->m_during_operation = true;
                     EnableOperationButtons(hwnd, FALSE);
                     if (!self->m_tracker.HasResult()) {
-                        MessageBoxW(hwnd, config->translate(config, L"No track data."), constants::WindowName, MB_OK | MB_ICONWARNING);
+                        MessageBoxW(hwnd, config->translate(config, L"No track data."), L"Operation Error", MB_OK | MB_ICONWARNING);
                         SetFocus(nullptr);
                         self->m_during_operation = false;
                         EnableOperationButtons(hwnd, TRUE);
