@@ -123,7 +123,7 @@ Specifies the hue of the rectangle displayed in Object Selection and View Result
 
 ## Building From Source
 
-To cross-build with MinGW on Linux (Docker), please read `.github/workflows/build.yml` or the [Dockerfile](https://github.com/nullruptr/MotionTracking_MK-II_Plus_for_AviUtl2/tree/master/docker).
+Please read `.github/workflows/build.yml`.
 
 Below are the steps to build with MSVC on Windows (both Release and Debug).
 

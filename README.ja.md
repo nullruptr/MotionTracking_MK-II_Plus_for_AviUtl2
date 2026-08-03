@@ -121,7 +121,7 @@ Object SelectionやView Resultで表示される矩形の色相を指定しま�
 
 ## ソースからのビルド
 
-Linux(Docker)上でMinGWを用いてビルドする場合は、`.github/workflows/build.yml`または、[Dockerfile](https://github.com/nullruptr/MotionTracking_MK-II_Plus_for_AviUtl2/tree/master/docker)をご覧ください。
+`.github/workflows/build.yml`をご覧ください。
 
 以下では、Windows上でMSVCを用いてビルドする手順(Release版/Debug版共通)を説明します。
 
