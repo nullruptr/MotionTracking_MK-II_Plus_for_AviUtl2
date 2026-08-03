@@ -256,6 +256,7 @@ bool Tracker::Analyze(EDIT_HANDLE* edit, TrackingMethod method) {
                     m_cv3_err = true;
                     break;
                 }
+                track_init = true;
                 m_track_found.push_back(true);
             } else {
                 if (tracker->update(image, box)) {
@@ -517,7 +518,7 @@ cv::Ptr<cv::Tracker> Tracker::CreateTracker(TrackingMethod method) {
             IsFileExist(params.model);
             IsFileExist(params.kernel_r1);
             IsFileExist(params.kernel_cls1);
-            MBModelNotFound();
+            if (!MBModelNotFound()) return {};
             tracker = cv::TrackerDaSiamRPN::create(params);
             break;
         }
@@ -528,7 +529,7 @@ cv::Ptr<cv::Tracker> Tracker::CreateTracker(TrackingMethod method) {
             params.neckhead = m_modelDir + "nanotrack_head_sim.onnx";
             IsFileExist(params.backbone);
             IsFileExist(params.neckhead);
-            MBModelNotFound();
+            if (!MBModelNotFound()) return {};
             tracker = cv::TrackerNano::create(params);
             break;
         }
@@ -541,7 +542,7 @@ cv::Ptr<cv::Tracker> Tracker::CreateTracker(TrackingMethod method) {
             auto params = cv::TrackerVit::Params();
             params.net = m_modelDir + "vitTracker.onnx";
             IsFileExist(params.net);
-            MBModelNotFound();
+            if (!MBModelNotFound()) return {};
             tracker = cv::TrackerVit::create(params);
             break;
         }
