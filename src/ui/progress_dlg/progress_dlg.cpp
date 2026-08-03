@@ -97,7 +97,7 @@ ProgressDlg* ProgressDlg::Create(HWND parent, Tracker* tracker, HINSTANCE hInst,
         CLASS_NAME,
         L"Analyzing...",
         WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU,
-        CW_USEDEFAULT, CW_USEDEFAULT, DIP(360), DIP(300),
+        CW_USEDEFAULT, CW_USEDEFAULT, DIP(360), DIP(130),
         parent, nullptr, hInst, dlg);
 
     HFONT hfont = CreateFontW(
