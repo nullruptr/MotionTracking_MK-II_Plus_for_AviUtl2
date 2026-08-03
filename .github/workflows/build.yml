@@ -21,6 +21,9 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Set up MSVC Developer Command Prompt
+        uses: ilammy/msvc-dev-cmd@v1
+
       - name: Download OpenCV LICENSE
         run: |
           curl https://raw.githubusercontent.com/opencv/opencv/4.13.0/LICENSE -o opencv.txt
