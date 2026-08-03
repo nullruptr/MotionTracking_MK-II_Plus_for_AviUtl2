@@ -21,9 +21,6 @@ jobs:
         with:
           submodules: recursive
 
-      - name: WORKSPACE
-        working-directory: ${{ github.workspace }}
-
       - name: Download OpenCV LICENSE
         run: |
           curl https://raw.githubusercontent.com/opencv/opencv/4.13.0/LICENSE -o opencv.txt
