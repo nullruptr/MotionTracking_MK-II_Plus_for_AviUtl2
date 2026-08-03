@@ -31,8 +31,9 @@ jobs:
           python-version: '3.13'
 
       - name: Install Poetry
-        run: |
-          (Invoke-WebRequest -Uri https://install.python-poetry.org -UseBasicParsing).Content | py -
+        uses: abatilo/actions-poetry@v3
+        with:
+          poetry-version: '2.2.1'
 
       - name: Set up Conan
         run: |
