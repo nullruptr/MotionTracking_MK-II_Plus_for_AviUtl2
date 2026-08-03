@@ -13,6 +13,17 @@ compile:
 	cmake --build $(BUILD_DIR) --config Release
 	$(MAKE) compdb
 
+# CI (GitHub Actions) 向けのビルド。VS ジェネレータのインスタンス自動検出が
+# 多段シェル経由の実行だと不安定なため、Ninja + cl.exe 直接呼び出しに切り替える。
+compile-ci:
+	cd .. && poetry run conan install . --output-folder=src/build -pr:h=profiles/msvc-release --build=missing \
+		-c tools.cmake.cmaketoolchain:generator=Ninja
+	cmake -S . -B $(BUILD_DIR) -G Ninja \
+		-DCMAKE_TOOLCHAIN_FILE=$(BUILD_DIR)/Release/generators/conan_toolchain.cmake \
+		-DCMAKE_BUILD_TYPE=Release \
+		-DCMAKE_POLICY_DEFAULT_CMP0091=NEW
+	cmake --build $(BUILD_DIR)
+
 # Debug 版のビルド (msvc-debug プロファイルを使用、build-debug/build に生成)
 compile-debug:
 	cd .. && PATH="/c/Program Files (x86)/Microsoft Visual Studio/Installer:$$PATH" \

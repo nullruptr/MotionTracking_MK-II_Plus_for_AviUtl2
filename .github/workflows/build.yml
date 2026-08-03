@@ -51,7 +51,7 @@ jobs:
         run: |
           cd ${{ github.workspace }}
           cd src
-          make compile
+          make compile-ci
 
       - name: Pack into a folder
         run: |
@@ -60,7 +60,7 @@ jobs:
           mkdir pack\${{ env.SOLUTION_NAME }}\Licenses
 
           # 本体
-          Copy-Item src\build\build\Release\MotionTrackingMKIIPlusforAviUtl2.aux2 pack\${{ env.SOLUTION_NAME }}
+          Copy-Item src\build\build\MotionTrackingMKIIPlusforAviUtl2.aux2 pack\${{ env.SOLUTION_NAME }}
 
           # MTMK2 のライセンスを名前を変えて複製
           Copy-Item LICENSE ${{ env.SOLUTION_NAME }}.txt
