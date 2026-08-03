@@ -11,7 +11,6 @@ compile:
 		-DCMAKE_TOOLCHAIN_FILE=$(BUILD_DIR)/generators/conan_toolchain.cmake \
 		-DCMAKE_POLICY_DEFAULT_CMP0091=NEW
 	cmake --build $(BUILD_DIR) --config Release
-	$(MAKE) compdb
 
 # Debug 版のビルド (msvc-debug プロファイルを使用、build-debug/build に生成)
 compile-debug:

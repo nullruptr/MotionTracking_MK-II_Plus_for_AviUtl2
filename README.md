@@ -204,7 +204,7 @@ make compile
 make compile-debug
 ```
 
-`make compile` also generates `compile_commands.json` for clangd (the `compdb` target) after building the Release binary.
+If you use clangd, run `make compdb` separately after building to generate `compile_commands.json`.
 
 ### 5. Build output
 

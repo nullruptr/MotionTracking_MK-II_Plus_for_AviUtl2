@@ -203,7 +203,7 @@ make compile
 make compile-debug
 ```
 
-`make compile` は、Release版のビルドに加えて、clangd 用の `compile_commands.json` の生成(`compdb`)も行います。
+clangd を利用する場合は、ビルド後に `make compdb` を別途実行して `compile_commands.json` を生成してください。
 
 ### 5. ビルド成果物
 
