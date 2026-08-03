@@ -203,7 +203,7 @@ void MainFrame::CreateControls() {
     HWND check_sub_filter = CreateWindowEx(
         0,
         WC_BUTTON,
-        config->translate(config, L"As Sub-filter/部分フィルター?"),
+        config->translate(config, L"As Sub-filter/部分フィルタ?"),
         WS_VISIBLE | WS_CHILD | BS_OWNERDRAW,
         DIP(10), y_pos, DIP(300), item_height,
         m_hwnd,
