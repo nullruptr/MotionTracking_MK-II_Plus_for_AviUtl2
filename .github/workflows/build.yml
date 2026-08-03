@@ -2,146 +2,112 @@ name: Build
 
 on:
   workflow_dispatch:
+  push:
+    tags:
+      - '*'
+    branches:
+      - 'master'
+
+env:
+  SOLUTION_NAME: MotionTrackingMKIIPlusforAviUtl2
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    name: Build
+    runs-on: windows-latest
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
-          fetch-depth: 0
           submodules: recursive
 
-      # "locales のインストールと日本語ロケール生成"
-      - name: Setting TZ and Japanese Locale
-        run: |
-          sudo apt update && \
-          sudo apt-get upgrade -y && \
-          sudo apt install -y locales && \
-          sudo locale-gen ja_JP.UTF-8 && \
-          sudo update-locale LANG=ja_JP.UTF-8
+      - name: WORKSPACE
+        working-directory: ${{ github.workspace }}
 
-      # install
-      - name: install
+      - name: Download OpenCV LICENSE
         run: |
-          sudo apt update &&\
-          sudo apt-get upgrade -y &&\
-          sudo apt install -y \
-          make \
-          cmake \
-          gcc \
-          g++ \
-          gcc-mingw-w64 \
-          g++-mingw-w64
+          curl https://raw.githubusercontent.com/opencv/opencv/4.13.0/LICENSE -o opencv.txt
 
-      - name: Prepare /opt
-        run: |
-          sudo mkdir -p /opt && \
-          sudo chown "$(id -u):$(id -g)" /opt
-
-      # OpenCV は /usr/x86_64-w64-mingw32 配下に make install されるのでキャッシュする。
-      # バージョンを上げた場合は key の -v1 部分を変更してキャッシュを無効化すること。
-      - name: Cache MinGW-built dependencies (OpenCV)
-        id: cache-deps
-        uses: actions/cache@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
-          path: /usr/x86_64-w64-mingw32
-          key: mingw-deps-opencv4.12.0-v1
+          python-version: '3.13'
 
-      # Setup OpenCV
-      - name: Setup OpenCV
-        if: steps.cache-deps.outputs.cache-hit != 'true'
-        working-directory: /opt
+      - name: Install Poetry
         run: |
-          git clone https://github.com/opencv/opencv.git -b 4.12.0 --depth 1
+          (Invoke-WebRequest -Uri https://install.python-poetry.org -UseBasicParsing).Content | py -
 
-      - name: Setup OpenCV (contrib)
-        if: steps.cache-deps.outputs.cache-hit != 'true'
-        working-directory: /opt
+      - name: Set up Conan
         run: |
-          git clone https://github.com/opencv/opencv_contrib.git -b 4.12.0 --depth 1
+          poetry install
+          poetry run conan profile detect --force
 
-      # Build
-      - name: Build OpenCV
-        if: steps.cache-deps.outputs.cache-hit != 'true'
-        run: |
-          mkdir -p /opt/opencv/build-mingw
+      - name: Install Make
+        run:
+          choco install make
 
-      - name: Build OpenCV (cmake)
-        if: steps.cache-deps.outputs.cache-hit != 'true'
-        working-directory: /opt/opencv/build-mingw
+      - name: Build
         run: |
-          cmake .. \
-          -DCMAKE_SYSTEM_NAME=Windows \
-          -DCMAKE_C_COMPILER=x86_64-w64-mingw32-gcc \
-          -DCMAKE_CXX_COMPILER=x86_64-w64-mingw32-g++ \
-          -DCMAKE_INSTALL_PREFIX=/usr/x86_64-w64-mingw32 \
-          -DCMAKE_FIND_ROOT_PATH=/usr/x86_64-w64-mingw32 \
-          -DCMAKE_BUILD_TYPE=Release \
-          -DCMAKE_FIND_ROOT_PATH_MODE_PROGRAM=NEVER \
-          -DCMAKE_FIND_ROOT_PATH_MODE_LIBRARY=ONLY \
-          -DCMAKE_FIND_ROOT_PATH_MODE_INCLUDE=ONLY \
-          -DBUILD_SHARED_LIBS=OFF \
-          -DBUILD_PERF_TESTS=OFF  \
-          -DBUILD_TESTS=OFF \
-          -DWITH_ADE=OFF \
-          -DWITH_OPENJPEG=OFF \
-          -DWITH_WEBP=OFF \
-          -DWITH_TIFF=OFF \
-          -DWITH_QUIRC=OFF \
-          -DWITH_OPENEXR=OFF \
-          -DWITH_JPEG=OFF \
-          -DWITH_LAPACK=OFF \
-          -DWITH_JASPER=OFF \
-          -DWITH_PNG=OFF \
-          -DWITH_GSTREAMER=OFF \
-          -DWITH_FFMPEG=OFF \
-          -DWITH_EIGEN=OFF \
-          -DWITH_DSHOW=OFF \
-          -DWITH_DIRECTX=OFF \
-          -DWITH_ARITH_DEC=OFF \
-          -DWITH_ARITH_ENC=OFF \
-          -DWITH_1394=OFF \
-          -DWITH_IMGCODEC_HDR=OFF \
-          -DWITH_IMGCODEC_PFM=OFF \
-          -DWITH_IMGCODEC_PXM=OFF \
-          -DWITH_IMGCODEC_SUNRASTER=OFF \
-          -DBUILD_OPENJPEG=OFF \
-          -DBUILD_JASPER=OFF \
-          -DBUILD_JAVA=OFF \
-          -DBUILD_JPEG=OFF \
-          -DBUILD_OPENEXR=OFF \
-          -DBUILD_PNG=OFF \
-          -DBUILD_TBB=OFF \
-          -DBUILD_opencv_python3=OFF \
-          -DOPENCV_EXTRA_MODULES_PATH=/opt/opencv_contrib/modules \
-          && make -j$(nproc) \
-          && sudo make install
-
-      # ビルド
-      - name: Build plugin
-        run: |
+          cd ${{ github.workspace }}
           cd src
           make compile
 
-      - name: Determine version
-        id: version
+      - name: Pack into a folder
         run: |
-          REVCOUNT=$(git rev-list --count HEAD)
-          VERSION="v${REVCOUNT}"
-          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          cd ${{ github.workspace }}
+          mkdir pack\${{ env.SOLUTION_NAME }}
+          mkdir pack\${{ env.SOLUTION_NAME }}\Licenses
 
-      - name: Package artifact
-        run: |
-          mkdir -p dist
-          cp src/build/MotionTrackingMKIIPlusforAviUtl2.aux2 dist/
-          cp README.md README.ja.md LICENSE dist/
-          cp -r Licenses dist/
+          # 本体
+          Copy-Item src\build\build\Release\MotionTrackingMKIIPlusforAviUtl2.aux2 pack\${{ env.SOLUTION_NAME }}
 
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
+          # MTMK2 のライセンスを名前を変えて複製
+          Copy-Item LICENSE ${{ env.SOLUTION_NAME }}.txt
+          Copy-Item ${{ env.SOLUTION_NAME }}.txt pack\${{ env.SOLUTION_NAME }}.txt
+
+          # AviUtl のSDKライセンス
+          Copy-Item Licenses\aviutl_plugin_sdk.txt pack\${{ env.SOLUTION_NAME }}\Licenses
+
+          # AviUtl2 のSDKライセンス
+          Copy-Item src\aviutl2_sdk\license.txt pack\${{ env.SOLUTION_NAME }}\license.txt
+
+          # OpenCV のライセンス
+          Copy-Item opencv.txt pack\${{ env.SOLUTION_NAME }}\Licenses\
+          Copy-Item opencv.txt pack\${{ env.SOLUTION_NAME }}\Licenses\opencv_contrib.txt
+
+          # README
+          Copy-Item README.ja.md pack
+          Copy-Item README.md pack
+
+      - name:  Upload artifact
+        uses: actions/upload-artifact@v7
         with:
-          name: MotionTrackingMKIIPlusforAviUtl2-${{ steps.version.outputs.version }}
-          path: dist/
+          path: pack\*
+          name: ${{ env.SOLUTION_NAME }}
+
+  release:
+    name: Create Release
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: Compress
+        run: |
+          cd artifacts
+          zip -r ../${{ env.SOLUTION_NAME }}.zip *
+
+      - name: ReleaseNotes
+        run: |
+          echo '変更内容につきましては[CHANGELOG.md](https://github.com/nullruptr/MotionTracking_MK-II_Plus_for_AviUtl2/blob/master/CHANGELOG.md)をご確認ください' >> ReleaseNotes.txt
+
+      - name: Release
+        uses: softprops/action-gh-release@v3
+        with:
+          files: '*.zip'
+          body_path: ReleaseNotes.txt
