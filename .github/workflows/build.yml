@@ -24,6 +24,7 @@ jobs:
       - name: Download OpenCV LICENSE
         run: |
           curl https://raw.githubusercontent.com/opencv/opencv/4.13.0/LICENSE -o opencv.txt
+          curl https://raw.githubusercontent.com/opencv/opencv_contrib/4.13.0/LICENSE -o opencv_contrib.txt
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -53,25 +54,25 @@ jobs:
       - name: Pack into a folder
         run: |
           cd ${{ github.workspace }}
-          mkdir pack\${{ env.SOLUTION_NAME }}
-          mkdir pack\${{ env.SOLUTION_NAME }}\Licenses
+          mkdir pack
+          mkdir pack\Licenses
 
           # 本体
-          Copy-Item src\build\build\Release\MotionTrackingMKIIPlusforAviUtl2.aux2 pack\${{ env.SOLUTION_NAME }}
+          Copy-Item src\build\build\Release\${{ env.SOLUTION_NAME }}.aux2 pack
 
-          # MTMK2 のライセンスを名前を変えて複製
+          # MTMK2 のライセンスのファイル名を変えて複製
           Copy-Item LICENSE ${{ env.SOLUTION_NAME }}.txt
-          Copy-Item ${{ env.SOLUTION_NAME }}.txt pack\${{ env.SOLUTION_NAME }}.txt
+          Copy-Item ${{ env.SOLUTION_NAME }}.txt pack\Licenses\${{ env.SOLUTION_NAME }}.txt
 
           # AviUtl のSDKライセンス
-          Copy-Item Licenses\aviutl_plugin_sdk.txt pack\${{ env.SOLUTION_NAME }}\Licenses
+          Copy-Item Licenses\aviutl_plugin_sdk.txt pack\Licenses
 
           # AviUtl2 のSDKライセンス
-          Copy-Item src\aviutl2_sdk\license.txt pack\${{ env.SOLUTION_NAME }}\license.txt
+          Copy-Item src\aviutl2_sdk\license.txt pack\Licenses
 
           # OpenCV のライセンス
-          Copy-Item opencv.txt pack\${{ env.SOLUTION_NAME }}\Licenses\
-          Copy-Item opencv.txt pack\${{ env.SOLUTION_NAME }}\Licenses\opencv_contrib.txt
+          Copy-Item opencv.txt pack\Licenses
+          Copy-Item opencv_contrib.txt pack\Licenses
 
           # README
           Copy-Item README.ja.md pack
