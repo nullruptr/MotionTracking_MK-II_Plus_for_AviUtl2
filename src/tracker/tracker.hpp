@@ -86,6 +86,9 @@ private:
     // OpenCV Error が出てクラッシュするので、未然に防止
     // https://e-penguiner.com/cpp-function-check-file-exist/
     bool IsFileExist(const std::string& path);
+    bool MBModelNotFound();
+
+    std::vector<std::string> m_v_modelPath;
 
     std::string             m_modelDir;
     std::vector<cv::Rect2d> m_track_result;

@@ -514,9 +514,10 @@ cv::Ptr<cv::Tracker> Tracker::CreateTracker(TrackingMethod method) {
             params.model = m_modelDir +  "dasiamrpn_model.onnx";
             params.kernel_r1 = m_modelDir + "dasiamrpn_kernel_r1.onnx";
             params.kernel_cls1 = m_modelDir + "dasiamrpn_kernel_cls1.onnx";
-            if(!IsFileExist(params.model)) {break;}
-            if(!IsFileExist(params.kernel_r1)) {break;}
-            if(!IsFileExist(params.kernel_cls1)) {break;}
+            IsFileExist(params.model);
+            IsFileExist(params.kernel_r1);
+            IsFileExist(params.kernel_cls1);
+            MBModelNotFound();
             tracker = cv::TrackerDaSiamRPN::create(params);
             break;
         }
@@ -525,8 +526,9 @@ cv::Ptr<cv::Tracker> Tracker::CreateTracker(TrackingMethod method) {
             auto params = cv::TrackerNano::Params();
             params.backbone = m_modelDir + "nanotrack_backbone_sim.onnx";
             params.neckhead = m_modelDir + "nanotrack_head_sim.onnx";
-            if(!IsFileExist(params.backbone)) {break;}
-            if(!IsFileExist(params.neckhead)) {break;}
+            IsFileExist(params.backbone);
+            IsFileExist(params.neckhead);
+            MBModelNotFound();
             tracker = cv::TrackerNano::create(params);
             break;
         }
@@ -538,7 +540,8 @@ cv::Ptr<cv::Tracker> Tracker::CreateTracker(TrackingMethod method) {
 
             auto params = cv::TrackerVit::Params();
             params.net = m_modelDir + "vitTracker.onnx";
-            if(!IsFileExist(params.net)) {break;}
+            IsFileExist(params.net);
+            MBModelNotFound();
             tracker = cv::TrackerVit::create(params);
             break;
         }
@@ -568,12 +571,25 @@ cv::Ptr<cv::Tracker> Tracker::CreateTracker(TrackingMethod method) {
 
 bool Tracker::IsFileExist(const std::string& path) {
     if(!std::filesystem::is_regular_file(path)) {
-        int wlen = MultiByteToWideChar(CP_UTF8, 0, path.c_str(), -1, nullptr, 0);
-        std::wstring wpath(wlen, L'\0');
-        MultiByteToWideChar(CP_UTF8, 0, path.c_str(), -1, wpath.data(), wlen);
+        m_v_modelPath.push_back(path);
+    }
+    return true;
+}
 
+bool Tracker::MBModelNotFound() {
+    if (!m_v_modelPath.empty()) {
+        std::string concatenateStr;
+        for (int i = 0; i < m_v_modelPath.size(); i++) {
+            concatenateStr += m_v_modelPath.at(i);
+            if (i != m_v_modelPath.size() - 1)
+                concatenateStr += "\n";
+        }
+        int wlen = MultiByteToWideChar(CP_UTF8, 0, concatenateStr.c_str(), -1, nullptr, 0);
+        std::wstring wpath(wlen, L'\0');
+        MultiByteToWideChar(CP_UTF8, 0, concatenateStr.c_str(), -1, wpath.data(), wlen);
         std::wstring msg = TEXT("Model Not Found\n\nExpected Model Path:\n") + wpath;
         MessageBox(NULL, msg.c_str(), TEXT("Error"), MB_OK | MB_ICONERROR);
+        m_v_modelPath.clear();
         return false;
     }
     return true;
