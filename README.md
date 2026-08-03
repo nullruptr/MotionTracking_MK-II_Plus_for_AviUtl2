@@ -1,4 +1,4 @@
-# MotionTracking_MK-II_Plus_for_AviUtl2
+# MotionTracking MK-II Plus for AviUtl2
 
 AviUtl ExEdit2 object tracking (rubbish) plugin based on LKT/optical flow.
 
