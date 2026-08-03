@@ -50,7 +50,7 @@ void MainFrame::CreateControls() {
     HWND button_file = CreateWindowEx(
         0, WC_BUTTON, L"File",
         WS_VISIBLE | WS_CHILD | BS_OWNERDRAW,
-        DIP(10), y_pos, DIP(145), item_height,
+        DIP(10), y_pos, DIP(75), item_height,
         m_hwnd, (HMENU)IDC_Toolbar::File, m_hInst, nullptr);
     SendMessage(button_file, WM_SETFONT, (WPARAM)hfont, TRUE);
 
@@ -58,7 +58,7 @@ void MainFrame::CreateControls() {
     HWND button_info = CreateWindowEx(
         0, WC_BUTTON, L"Info",
         WS_VISIBLE | WS_CHILD | BS_OWNERDRAW,
-        DIP(165), y_pos, DIP(145), item_height,
+        DIP(95), y_pos, DIP(75), item_height,
         m_hwnd, (HMENU)IDC_Toolbar::Info, m_hInst, nullptr);
     SendMessage(button_info, WM_SETFONT, (WPARAM)hfont, TRUE);
 
