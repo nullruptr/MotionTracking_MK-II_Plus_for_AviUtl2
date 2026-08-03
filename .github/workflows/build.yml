@@ -14,15 +14,12 @@ env:
 jobs:
   build:
     name: Build
-    runs-on: windows-latest
+    runs-on: windows-2022
 
     steps:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
-
-      - name: Set up MSVC Developer Command Prompt
-        uses: ilammy/msvc-dev-cmd@v1
 
       - name: Download OpenCV LICENSE
         run: |
@@ -51,7 +48,7 @@ jobs:
         run: |
           cd ${{ github.workspace }}
           cd src
-          make compile-ci
+          make compile
 
       - name: Pack into a folder
         run: |
@@ -60,7 +57,7 @@ jobs:
           mkdir pack\${{ env.SOLUTION_NAME }}\Licenses
 
           # 本体
-          Copy-Item src\build\build\MotionTrackingMKIIPlusforAviUtl2.aux2 pack\${{ env.SOLUTION_NAME }}
+          Copy-Item src\build\build\Release\MotionTrackingMKIIPlusforAviUtl2.aux2 pack\${{ env.SOLUTION_NAME }}
 
           # MTMK2 のライセンスを名前を変えて複製
           Copy-Item LICENSE ${{ env.SOLUTION_NAME }}.txt
