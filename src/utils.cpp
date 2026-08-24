@@ -1,4 +1,8 @@
 #include "utils.hpp"
+#include "aviutl2_sdk/plugin2.h"
+#include <winuser.h>
+#include <dwmapi.h>
+#include <algorithm>
 
 namespace utils {
 
@@ -47,6 +51,68 @@ bool is_high_dpi_mode(HINSTANCE hInst) {
 
 int FromDIP(int dip, UINT dpi) {
     return MulDiv(dip, dpi, 96);
+}
+
+bool ResizeWindow(HWND hwnd, EDIT_HANDLE* edit_handle) {
+    EDIT_INFO info{};
+    edit_handle->get_edit_info(&info, sizeof(info));
+
+    int imgw = info.width;
+    int imgh = info.height;
+
+    // https://s-kita.hatenablog.com/entry/20130502/1367485535
+
+    // モニタ情報
+    MONITORINFOEX MonitorInfoEx;
+    HMONITOR hMonitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
+
+    MonitorInfoEx.cbSize = sizeof(MonitorInfoEx);
+    GetMonitorInfo(hMonitor, &MonitorInfoEx);
+
+    // モニタの大きさ
+    int mh = std::abs(MonitorInfoEx.rcMonitor.top - MonitorInfoEx.rcMonitor.bottom);
+    int mw = std::abs(MonitorInfoEx.rcMonitor.right - MonitorInfoEx.rcMonitor.left);
+
+    RECT rect;
+    HRESULT hResult;
+    BOOL    bResult;
+    BOOL    bDwmEnable;
+
+    hResult = DwmIsCompositionEnabled( &bDwmEnable );
+    if  (S_OK == hResult ){
+        if ( bDwmEnable ){
+            // エアロ環境
+            hResult = DwmGetWindowAttribute(hwnd, DWMWA_EXTENDED_FRAME_BOUNDS, &rect, sizeof(rect));
+        }
+        else{
+            // 非エアロ環境
+            bResult = GetWindowRect(hwnd, &rect);
+        }
+    }
+
+    double wnd_w = rect.right - rect.left;
+    double wnd_h = rect.bottom - rect.top;
+
+    RECT clientRect;
+    GetClientRect(hwnd, &clientRect);
+    double chrome_w = wnd_w - clientRect.right;
+    double chrome_h = wnd_h - clientRect.bottom;
+
+    // いったん0.8倍
+    double k = 0.8;
+    double scale_w = (mw * k) / imgw;
+    double scale_h = (mh * k) / imgh;
+    double scale  = std::min(scale_w, scale_h);
+
+    double mw_dash = imgw * scale;
+    double mh_dash = imgh * scale;
+
+    mw_dash += chrome_w;
+    mh_dash += chrome_h;
+
+    SetWindowPos(hwnd, nullptr, 0, 0, static_cast<int>(mw_dash), static_cast<int>(mh_dash), SWP_NOMOVE | SWP_NOZORDER);
+
+    return  true;
 }
 
 }

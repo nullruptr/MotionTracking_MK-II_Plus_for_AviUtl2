@@ -2,6 +2,8 @@
 #include <windows.h>
 #include "opencv2/core/utility.hpp"
 
+struct EDIT_HANDLE;
+
 namespace utils {
     cv::Scalar hue_to_scalar(int hue);
     // モデルのファイルパス処理
@@ -10,4 +12,6 @@ namespace utils {
     bool is_high_dpi_mode(HINSTANCE hInst);
     // 96DPI基準のDIP値を、指定DPIに合わせた実ピクセル値に変換する(wxWidgetsのFromDIP相当)
     int FromDIP(int dip, UINT dpi);
+    // imshowを、強制的にリサイズする
+    bool ResizeWindow(HWND hwnd, EDIT_HANDLE* edit_handle);
 }

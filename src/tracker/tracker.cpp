@@ -85,31 +85,8 @@ bool Tracker::SelectObject(EDIT_HANDLE* edit_handle, int hueValue) {
     cv::resizeWindow("Object Selection", m_image.cols, m_image.rows);
     cv::imshow("Object Selection", m_image);
 
-    /*
     HWND hwnd = FindWindowA(nullptr, "Object Selection");
-    if (hwnd && GetForegroundWindow() == hwnd) {
-        // https://s-kita.hatenablog.com/entry/20130502/1367485535
-
-        MONITORINFOEX MonitorInfoEx;
-        HMONITOR hMonitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
-
-        MonitorInfoEx.cbSize = sizeof(MonitorInfoEx);
-        GetMonitorInfo(hMonitor, &MonitorInfoEx);
-
-        int mh = abs(MonitorInfoEx.rcMonitor.top - MonitorInfoEx.rcMonitor.bottom);
-        int mw = abs(MonitorInfoEx.rcMonitor.right - MonitorInfoEx.rcMonitor.left);
-
-        LPRECT lpRect;
-        bool cvwnd = GetClientRect(hwnd, lpRect);
-
-        int cvh = lpRect->bottom;
-        int cvw = lpRect->right;
-
-        if (mh <= cvh || mw <= cvw) {
-
-        }
-    }
-    */
+    utils::ResizeWindow(hwnd, edit_handle);
 
     // 前回の選択範囲があれば表示
     if (m_selectObj) {
@@ -171,7 +148,7 @@ void Tracker::ShowResultWindow(EDIT_HANDLE* edit) {
         return;
     }
 
-    cv::namedWindow("Tracking Result", cv::WINDOW_AUTOSIZE);
+    cv::namedWindow("Tracking Result", cv::WINDOW_KEEPRATIO);
 
     int pos_val = 0;
     int max_pos = (int)m_track_result.size() - 1;
@@ -217,6 +194,8 @@ void Tracker::OnResultTrackbarChange(int pos, void* userdata) {
     }
 
     cv::imshow("Tracking Result", image);
+    HWND hwnd = FindWindowA(nullptr, "Tracking Result");
+    utils::ResizeWindow(hwnd, edit);
 }
 
 bool Tracker::Analyze(EDIT_HANDLE* edit, TrackingMethod method) {

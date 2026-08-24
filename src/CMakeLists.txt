@@ -34,6 +34,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     comctl32
     comdlg32
     shell32
+    dwmapi
     opencv::opencv
 )
 target_compile_definitions(${PROJECT_NAME} PRIVATE
