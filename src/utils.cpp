@@ -53,7 +53,12 @@ int FromDIP(int dip, UINT dpi) {
     return MulDiv(dip, dpi, 96);
 }
 
-bool ResizeWindow(HWND hwnd, EDIT_HANDLE* edit_handle) {
+bool ResizeWindow(HWND hwnd, EDIT_HANDLE* edit_handle, double k) {
+    // 倍率不正の時
+    if (k < 0.0 || k >= 1.01) {
+        return true;
+    }
+
     EDIT_INFO info{};
     edit_handle->get_edit_info(&info, sizeof(info));
 
@@ -98,8 +103,6 @@ bool ResizeWindow(HWND hwnd, EDIT_HANDLE* edit_handle) {
     double chrome_w = wnd_w - clientRect.right;
     double chrome_h = wnd_h - clientRect.bottom;
 
-    // いったん0.8倍
-    double k = 0.8;
     double scale_w = (mw * k) / imgw;
     double scale_h = (mh * k) / imgh;
     double scale  = std::min(scale_w, scale_h);

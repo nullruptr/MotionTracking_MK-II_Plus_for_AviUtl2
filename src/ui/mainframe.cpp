@@ -48,12 +48,9 @@ EXTERN_C __declspec(dllexport) void InitializeConfig(CONFIG_HANDLE* handle) {
     config = handle;
 }
 
-/*
- * 動作せず
 EXTERN_C __declspec(dllexport) void UninitializePlugin() {
     cv::destroyAllWindows();
 }
-*/
 
 
 // --
@@ -275,6 +272,19 @@ LRESULT CALLBACK MainFrame::wnd_proc(HWND hwnd, UINT message, WPARAM wparam, LPA
                 swprintf_s(buffer, L"%d", self->m_hueValue);
                 SetWindowText(GetDlgItem(hwnd, (int)IDC_Button::HueValue), buffer);
             }
+            if ((HWND)lparam == GetDlgItem(hwnd, (int)IDC_Button::ScaleTrackbar)) {
+                int pos = static_cast<int>(SendMessage((HWND)lparam, TBM_GETPOS, 0, 0));
+                double k = pos / 100.0;
+                wchar_t buffer[16];
+                if (k >= 1.01) {
+                    self->m_wndScale = 1.01;
+                    wcscpy_s(buffer, L"--");
+                } else {
+                    self->m_wndScale = k;
+                    swprintf_s(buffer, L"%.2f", k);
+                }
+                SetWindowText(GetDlgItem(hwnd, (int)IDC_Button::WndScale), buffer);
+            }
             break;
         }
         case WM_CTLCOLORSTATIC:
@@ -435,7 +445,7 @@ LRESULT CALLBACK MainFrame::wnd_proc(HWND hwnd, UINT message, WPARAM wparam, LPA
                         EnableOperationButtons(hwnd, TRUE);
                         return 0;
                     }
-                    self->m_tracker.ShowResultWindow(self->m_edit_handle);
+                    self->m_tracker.ShowResultWindow(self->m_edit_handle, self->m_wndScale);
                     SetFocus(nullptr);
                     self->m_during_operation = false;
                     EnableOperationButtons(hwnd, TRUE);
@@ -451,7 +461,7 @@ LRESULT CALLBACK MainFrame::wnd_proc(HWND hwnd, UINT message, WPARAM wparam, LPA
                     self->m_during_operation = true;
                     EnableOperationButtons(hwnd, FALSE);
                     logger->info(logger, L"SelectObject: start");
-                    self->m_tracker.SelectObject(self->m_edit_handle, self->m_hueValue);
+                    self->m_tracker.SelectObject(self->m_edit_handle, self->m_hueValue, self->m_wndScale);
                     SetFocus(nullptr);
                     self->m_during_operation = false;
                     EnableOperationButtons(hwnd, TRUE);

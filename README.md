@@ -96,6 +96,10 @@ Specifies the algorithm to be used in the analysis.
 
 Specifies the hue of the rectangle displayed in Object Selection and View Result.
 
+##### Wnd Scale
+
+This is the window scale of Select Object / View Result window. You can select a value from 0.00 to 1.00. If you select track bar as far right(--), it becomes disabled.
+
 ##### Insert Object Options
 
 - As Sub-filter/部分フィルタ？ : Output as a sub filter.

@@ -13,5 +13,5 @@ namespace utils {
     // 96DPI基準のDIP値を、指定DPIに合わせた実ピクセル値に変換する(wxWidgetsのFromDIP相当)
     int FromDIP(int dip, UINT dpi);
     // imshowを、強制的にリサイズする
-    bool ResizeWindow(HWND hwnd, EDIT_HANDLE* edit_handle);
+    bool ResizeWindow(HWND hwnd, EDIT_HANDLE* edit_handle, double k = 0.8);
 }

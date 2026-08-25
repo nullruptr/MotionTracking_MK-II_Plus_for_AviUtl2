@@ -55,9 +55,9 @@ public:
     bool Analyze(EDIT_HANDLE* edit, TrackingMethod method);
     bool Analyze2(EDIT_HANDLE* edit, TrackingMethod method);
     void Clear(ClearMode mode = ClearMode::Full);
-    bool SelectObject(EDIT_HANDLE* edit, int hueValue);
+    bool SelectObject(EDIT_HANDLE* edit, int hueValue, double wndScale);
     // トラッキング結果をトラックバー付きウィンドウでプレビュー表示
-    void ShowResultWindow(EDIT_HANDLE* edit);
+    void ShowResultWindow(EDIT_HANDLE* edit, double wndScale);
 
     const std::vector<cv::Rect2d>& Results()    const { return m_track_result; }
     const std::vector<bool>&       Found()      const { return m_track_found; }
@@ -97,6 +97,8 @@ private:
     std::vector<bool>       m_track_found;
     // 状態
     int        m_hueValue  = 180;
+    // imshow ウィンドウのリサイズ倍率。1.01以上は無効(既定倍率を使用)を意味する
+    double     m_wndScale  = 1.01;
     cv::Mat    m_image;
     cv::Rect2d m_boundingBox;
     bool       m_selectObj = false;

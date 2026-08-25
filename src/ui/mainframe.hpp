@@ -24,7 +24,9 @@ enum class IDC_Button : int {
     InsertObject,
     TrackingMethodCombo,
     HueTrackbar,
+    ScaleTrackbar,
     HueValue,
+    WndScale,
     ViewResult,
     AsSubFilter,
     InvertPosition,
@@ -67,6 +69,9 @@ private:
     CONFIG_HANDLE*  m_config     = nullptr;
     std::string     m_modelDir;
     int             m_hueValue   = 180;
+    // imshow ウィンドウのリサイズ倍率
+    // 1.01以上で無効とする
+    double          m_wndScale   = 1.01;
 
     // Tracker インスタンス
     Tracker m_tracker;

@@ -3,6 +3,7 @@
 #include "constants.hpp"
 #include "utils.hpp"
 #include <winuser.h>
+#include <cmath>
 
 extern LOG_HANDLE*    logger;
 extern CONFIG_HANDLE* config;
@@ -45,6 +46,24 @@ void MainFrame::CreateControls() {
     int item_height = config->get_layout_size(config, "SettingItemHeight");
     int y_pos = DIP(10);
 
+    // ラベル等にホバーで説明を出すためのツールチップ
+    HWND hwndTip = CreateWindowEx(
+        WS_EX_TOPMOST,
+        TOOLTIPS_CLASS, nullptr,
+        WS_POPUP | TTS_ALWAYSTIP | TTS_NOPREFIX,
+        CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
+        m_hwnd, nullptr, m_hInst, nullptr);
+    SendMessage(hwndTip, TTM_SETMAXTIPWIDTH, 0, DIP(300));
+    auto AddTooltip = [hwndTip, this](HWND target, const wchar_t* text) {
+        TOOLINFOW ti = {};
+        ti.cbSize   = sizeof(ti);
+        ti.uFlags   = TTF_IDISHWND | TTF_SUBCLASS;
+        ti.hwnd     = m_hwnd;
+        ti.uId      = reinterpret_cast<UINT_PTR>(target);
+        ti.lpszText = const_cast<LPWSTR>(text);
+        SendMessage(hwndTip, TTM_ADDTOOL, 0, (LPARAM)&ti);
+    };
+
     // メニューバーが使えなかったので、代替
     // File ボタン
     HWND button_file = CreateWindowEx(
@@ -69,7 +88,7 @@ void MainFrame::CreateControls() {
         0,
         WC_STATIC,
         config->translate(config, L"Method"),
-        WS_VISIBLE | WS_CHILD,
+        WS_VISIBLE | WS_CHILD | SS_LEFTNOWORDWRAP,
         DIP(10), y_pos, DIP(100), item_height,
         m_hwnd,
         (HMENU)-1,
@@ -83,7 +102,7 @@ void MainFrame::CreateControls() {
         WC_COMBOBOX,
         nullptr,
         WS_VISIBLE | WS_CHILD | CBS_DROPDOWNLIST | CBS_OWNERDRAWFIXED | CBS_HASSTRINGS,
-        DIP(75), y_pos, DIP(195), DIP(200), // ドロップダウンが開くように高さを大きめに確保
+        DIP(95), y_pos, DIP(180), DIP(200), // ドロップダウンが開くように高さを大きめに確保
         m_hwnd,
         (HMENU)IDC_Button::TrackingMethodCombo,
         m_hInst,
@@ -101,13 +120,14 @@ void MainFrame::CreateControls() {
         0,
         WC_STATIC,
         config->translate(config, L"Hue"),
-        WS_VISIBLE | WS_CHILD,
-        DIP(10), y_pos, DIP(60), item_height,
+        WS_VISIBLE | WS_CHILD | SS_LEFTNOWORDWRAP | SS_NOTIFY,
+        DIP(10), y_pos, DIP(80), item_height,
         m_hwnd,
         (HMENU)-1,
         m_hInst,
         nullptr);
     SendMessage(label_hue, WM_SETFONT, (WPARAM)hfont, TRUE);
+    AddTooltip(label_hue, L"EN: Specifies the hue of the rectangle displayed in Object Selection and View Result.\r\nJA: Object SelectionやView Resultで表示される矩形の色相を指定します。");
 
     // Hueトラックバーを作成
     HWND trackbar_hue = CreateWindowEx(
@@ -115,7 +135,7 @@ void MainFrame::CreateControls() {
         TRACKBAR_CLASS,
         L"Hue",
         WS_VISIBLE | WS_CHILD,
-        DIP(75), y_pos, DIP(205), item_height,
+        DIP(95), y_pos, DIP(180), item_height,
         m_hwnd,
         (HMENU)IDC_Button::HueTrackbar,
         m_hInst,
@@ -123,6 +143,7 @@ void MainFrame::CreateControls() {
     SendMessage(trackbar_hue, TBM_SETRANGE, (WPARAM)TRUE, (LPARAM)MAKELONG(0, 359));
     SendMessage(trackbar_hue, TBM_SETPOS, (WPARAM)TRUE, (LPARAM)m_hueValue);
     SendMessage(trackbar_hue, WM_SETFONT, (WPARAM)hfont, TRUE);
+    AddTooltip(trackbar_hue, L"EN: Specifies the hue of the rectangle displayed in Object Selection and View Result.\r\nJA: Object SelectionやView Resultで表示される矩形の色相を指定します。");
 
     // Hue数値表示を作成
     HWND hue_value_display = CreateWindowEx(
@@ -130,12 +151,58 @@ void MainFrame::CreateControls() {
         WC_STATIC,
         L"180",
         WS_VISIBLE | WS_CHILD | SS_CENTER,
-        DIP(285), y_pos, DIP(25), item_height,
+        DIP(275), y_pos, DIP(40), item_height,
         m_hwnd,
         (HMENU)IDC_Button::HueValue,
         m_hInst,
         nullptr);
     SendMessage(hue_value_display, WM_SETFONT, (WPARAM)hfont, TRUE);
+
+    y_pos += item_height + DIP(5);
+
+    // Wnd Scaleラベルを作成
+    HWND label_scale = CreateWindowEx(
+        0,
+        WC_STATIC,
+        config->translate(config, L"Wnd Scale"),
+        WS_VISIBLE | WS_CHILD | SS_LEFTNOWORDWRAP | SS_NOTIFY,
+        DIP(10), y_pos, DIP(80), item_height,
+        m_hwnd,
+        (HMENU)-1,
+        m_hInst,
+        nullptr);
+    SendMessage(label_scale, WM_SETFONT, (WPARAM)hfont, TRUE);
+    AddTooltip(label_scale, L"EN: This is the window scale of Select Object / View Result window. \r\nYou can select a value from 0.00 to 1.00. If you select track bar as far right(--), it becomes disabled.\r\nJA: Select Object / View Result で表示されるウィンドウの表示倍率を設定します。\r\n0.00~1.00 の範囲で指定できます。一番右(--)で無効になります。");
+
+    // Scaleトラックバーを作成
+    // 0~100 が倍率 0.00~1.00、101 は「無効」(既定倍率を使用)を表す
+    HWND trackbar_scale = CreateWindowEx(
+        0,
+        TRACKBAR_CLASS,
+        L"Scale",
+        WS_VISIBLE | WS_CHILD,
+        DIP(95), y_pos, DIP(180), item_height,
+        m_hwnd,
+        (HMENU)IDC_Button::ScaleTrackbar,
+        m_hInst,
+        nullptr);
+    SendMessage(trackbar_scale, TBM_SETRANGE, (WPARAM)TRUE, (LPARAM)MAKELONG(0, 101));
+    SendMessage(trackbar_scale, TBM_SETPOS, (WPARAM)TRUE, (LPARAM)std::lround(m_wndScale * 100));
+    SendMessage(trackbar_scale, WM_SETFONT, (WPARAM)hfont, TRUE);
+    AddTooltip(trackbar_scale, L"EN: This is the window scale of Select Object / View Result window. \r\nYou can select a value from 0.00 to 1.00. If you select track bar as far right(--), it becomes disabled.\r\nJA: Select Object / View Result で表示されるウィンドウの表示倍率を設定します。\r\n0.00~1.00 の範囲で指定できます。一番右(--)で無効になります。");
+
+    // Scale倍率表示を作成
+    HWND hue_value_scale = CreateWindowEx(
+        0,
+        WC_STATIC,
+        L"--",
+        WS_VISIBLE | WS_CHILD | SS_CENTER,
+        DIP(275), y_pos, DIP(40), item_height,
+        m_hwnd,
+        (HMENU)IDC_Button::WndScale,
+        m_hInst,
+        nullptr);
+    SendMessage(hue_value_scale, WM_SETFONT, (WPARAM)hfont, TRUE);
 
     y_pos += item_height + DIP(5);
 

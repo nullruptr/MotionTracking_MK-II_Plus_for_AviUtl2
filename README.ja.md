@@ -92,7 +92,11 @@ CJKファイル名もサポートされています。
 
 ###### Hue
 
-Object SelectionやView Resultで表示される矩形の色相を指定します
+Object SelectionやView Resultで表示される矩形の色相を指定します。
+
+##### Wnd Scale
+
+Select Object / View Result で表示されるウィンドウの表示倍率を設定します。0.00~1.00 の範囲で指定できます。一番右(--)で無効になります。
 
 ##### Insert Object のオプション
 

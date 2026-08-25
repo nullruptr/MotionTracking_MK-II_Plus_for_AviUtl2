@@ -22,10 +22,11 @@ void Tracker::SetBox(cv::Rect2d box) {
     m_boundingBox = box;
 }
 
-bool Tracker::SelectObject(EDIT_HANDLE* edit_handle, int hueValue) {
+bool Tracker::SelectObject(EDIT_HANDLE* edit_handle, int hueValue, double wndScale) {
 
     // 色相をメンバ変数に
     m_hueValue = hueValue;
+    m_wndScale = wndScale;
     // 前回の状態を保存
     cv::Rect2d prevBoundingBox = m_boundingBox;
     bool prevSelectObj = m_selectObj;
@@ -86,7 +87,7 @@ bool Tracker::SelectObject(EDIT_HANDLE* edit_handle, int hueValue) {
     cv::imshow("Object Selection", m_image);
 
     HWND hwnd = FindWindowA(nullptr, "Object Selection");
-    utils::ResizeWindow(hwnd, edit_handle);
+    utils::ResizeWindow(hwnd, edit_handle, m_wndScale);
 
     // 前回の選択範囲があれば表示
     if (m_selectObj) {
@@ -142,11 +143,13 @@ namespace {
     };
 }
 
-void Tracker::ShowResultWindow(EDIT_HANDLE* edit) {
+void Tracker::ShowResultWindow(EDIT_HANDLE* edit, double wndScale) {
     if (m_track_result.empty()) {
         MessageBoxA(nullptr, "No tracking result found", "Operational Error", MB_OK);
         return;
     }
+
+    m_wndScale = wndScale;
 
     cv::namedWindow("Tracking Result", cv::WINDOW_KEEPRATIO);
 
@@ -195,7 +198,7 @@ void Tracker::OnResultTrackbarChange(int pos, void* userdata) {
 
     cv::imshow("Tracking Result", image);
     HWND hwnd = FindWindowA(nullptr, "Tracking Result");
-    utils::ResizeWindow(hwnd, edit);
+    utils::ResizeWindow(hwnd, edit, tracker->m_wndScale);
 }
 
 bool Tracker::Analyze(EDIT_HANDLE* edit, TrackingMethod method) {
