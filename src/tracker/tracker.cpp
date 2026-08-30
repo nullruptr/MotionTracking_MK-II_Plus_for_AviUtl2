@@ -151,7 +151,7 @@ void Tracker::ShowResultWindow(EDIT_HANDLE* edit, double wndScale) {
 
     m_wndScale = wndScale;
 
-    cv::namedWindow("Tracking Result", cv::WINDOW_KEEPRATIO);
+    cv::namedWindow("Tracking Result", cv::WINDOW_NORMAL);
 
     int pos_val = 0;
     int max_pos = (int)m_track_result.size() - 1;

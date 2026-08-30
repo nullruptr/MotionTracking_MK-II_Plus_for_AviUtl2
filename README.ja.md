@@ -97,6 +97,7 @@ Object SelectionやView Resultで表示される矩形の色相を指定しま�
 ##### Wnd Scale
 
 Select Object / View Result で表示されるウィンドウの表示倍率を設定します。0.00~1.00 の範囲で指定できます。一番右(--)で無効になります。
+外部から強制的に画面サイズを変更している関係上、View Result でトラックバーが極端に小さくなる不具合があります。View Result で利用する場合は、お気を付けください。
 
 ##### Insert Object のオプション
 

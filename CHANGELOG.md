@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## r114_3
+
+- Select Object / View Result ウィンドウの表示倍率を設定する項目を追加。
+- Hue, Wnd Scale に、説明用のツールチップを追加。
+
 ## r114_2
 
 - OpenCV を更新(4.12.0 -> 4.13.0)。

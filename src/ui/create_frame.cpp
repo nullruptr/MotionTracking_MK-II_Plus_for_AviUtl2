@@ -172,7 +172,7 @@ void MainFrame::CreateControls() {
         m_hInst,
         nullptr);
     SendMessage(label_scale, WM_SETFONT, (WPARAM)hfont, TRUE);
-    AddTooltip(label_scale, L"EN: This is the window scale of Select Object / View Result window. \r\nYou can select a value from 0.00 to 1.00. If you select track bar as far right(--), it becomes disabled.\r\nJA: Select Object / View Result で表示されるウィンドウの表示倍率を設定します。\r\n0.00~1.00 の範囲で指定できます。一番右(--)で無効になります。");
+    AddTooltip(label_scale, L"EN: This is the window scale of Select Object / View Result window. \r\nYou can select a value from 0.00 to 1.00. If you select track bar as far right(--), it becomes disabled.\r\nThe trackbar in View Result can become extremely small, because this plugin forcibly overrides the window size from outside. Please be careful when using this in View Result.\r\nJA: Select Object / View Result で表示されるウィンドウの表示倍率を設定します。\r\n0.00~1.00 の範囲で指定できます。一番右(--)で無効になります。\r\n外部から強制的に画面サイズを変更している関係上、View Result でトラックバーが極端に小さくなる不具合があります。View Result で利用する場合は、お気を付けください。");
 
     // Scaleトラックバーを作成
     // 0~100 が倍率 0.00~1.00、101 は「無効」(既定倍率を使用)を表す
@@ -189,7 +189,7 @@ void MainFrame::CreateControls() {
     SendMessage(trackbar_scale, TBM_SETRANGE, (WPARAM)TRUE, (LPARAM)MAKELONG(0, 101));
     SendMessage(trackbar_scale, TBM_SETPOS, (WPARAM)TRUE, (LPARAM)std::lround(m_wndScale * 100));
     SendMessage(trackbar_scale, WM_SETFONT, (WPARAM)hfont, TRUE);
-    AddTooltip(trackbar_scale, L"EN: This is the window scale of Select Object / View Result window. \r\nYou can select a value from 0.00 to 1.00. If you select track bar as far right(--), it becomes disabled.\r\nJA: Select Object / View Result で表示されるウィンドウの表示倍率を設定します。\r\n0.00~1.00 の範囲で指定できます。一番右(--)で無効になります。");
+    AddTooltip(trackbar_scale, L"EN: This is the window scale of Select Object / View Result window. \r\nYou can select a value from 0.00 to 1.00. If you select track bar as far right(--), it becomes disabled.\r\nThe trackbar in View Result can become extremely small, because this plugin forcibly overrides the window size from outside. Please be careful when using this in View Result.\r\nJA: Select Object / View Result で表示されるウィンドウの表示倍率を設定します。\r\n0.00~1.00 の範囲で指定できます。一番右(--)で無効になります。\r\n外部から強制的に画面サイズを変更している関係上、View Result でトラックバーが極端に小さくなる不具合があります。View Result で利用する場合は、お気を付けください。");
 
     // Scale倍率表示を作成
     HWND hue_value_scale = CreateWindowEx(

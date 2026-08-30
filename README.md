@@ -99,6 +99,7 @@ Specifies the hue of the rectangle displayed in Object Selection and View Result
 ##### Wnd Scale
 
 This is the window scale of Select Object / View Result window. You can select a value from 0.00 to 1.00. If you select track bar as far right(--), it becomes disabled.
+The trackbar in View Result can become extremely small, because this plugin forcibly overrides the window size from outside. Please be careful when using this in View Result.
 
 ##### Insert Object Options
 
