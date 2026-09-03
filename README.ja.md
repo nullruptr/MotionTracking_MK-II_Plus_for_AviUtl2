@@ -137,7 +137,19 @@ Select Object / View Result で表示されるウィンドウの表示倍率を�
 - [Git](https://git-scm.com/)(サブモジュール取得のため)
 - [Python](https://www.python.org/) 3.13 以上
 - [Poetry](https://python-poetry.org/)(Pythonの依存関係・仮想環境管理。この後の手順でConanをインストールするために使用)
+- [Chocolatey](https://chocolatey.org/)(make / CMake の導入に使用)
+- make
 - [CMake](https://cmake.org/) 3.20 以上
+
+Python は [python.org](https://www.python.org/) のインストーラーを使うか、winget で導入できます。
+
+```powershell
+winget install --id Python.Python.3.13 -e
+```
+
+winget 版はインストール時に `py` ランチャーと PATH を自動設定します。インストール後は**新しいシェルを開いて**、`py --version` が 3.13 以上を返すことを確認してください。
+
+> 補足: 通常は不要ですが、過去に Python を使っていた環境などで Microsoft Store のダミー(`WindowsApps\python.exe`)が優先され、`python` コマンドが Store を開いてしまう場合は、「設定 > アプリ > アプリ実行エイリアス」で `python.exe` / `python3.exe` を無効化してください。
 
 ### 1. リポジトリの取得
 
@@ -162,7 +174,14 @@ git submodule update --init --recursive
 (Invoke-WebRequest -Uri https://install.python-poetry.org -UseBasicParsing).Content | py -
 ```
 
-インストール後、`poetry --version` が実行できることを確認してください。PATHが通っていない場合は、シェルを再起動するか、PATHを追加してください。
+インストール後、`poetry --version` が実行できることを確認してください。PATHが通っていない場合は、以下を実行して Poetry のインストール先(`%APPDATA%\pypoetry\venv\Scripts`)をユーザーの PATH に追加してください。
+
+```powershell
+$p = "$env:APPDATA\pypoetry\venv\Scripts"
+[Environment]::SetEnvironmentVariable("Path",[Environment]::GetEnvironmentVariable("Path","User")+";$p","User")
+```
+
+PATH の変更は新しく開いたシェルから有効になります。シェルを再起動してから `poetry --version` を再確認してください。
 
 ### 3. Conan のセットアップ
 
@@ -190,12 +209,23 @@ poetry run conan profile detect --force
 依存ライブラリ(OpenCV)のビルドを含むため、初回は時間がかかります(30分以上かかる場合があります)。
 ビルドは「x64 Native Tools Command Prompt for VS 2022」または「Developer PowerShell for VS 2022」から実行することを推奨します。
 
-#### make のセットアップ
+#### make / CMake のセットアップ
 
-make は、[Make for Windows](https://gnuwin32.sourceforge.net/packages/make.htm)を利用します。
-インストールするものは、`Description`にある、`Complete package, except sources`の、`Setup` です。
-ダウンロードが完了したら、インストーラから make をインストールします。
-インストール後、パスを通してセットアップしてください。
+make と CMake は [Chocolatey](https://chocolatey.org/) からインストールします(CI と同じ構成)。
+
+Chocolatey が未導入の場合は、[公式手順](https://chocolatey.org/install)に従い、**管理者権限の PowerShell** で先にインストールしてください。
+
+その後、**管理者権限の PowerShell**(スタートメニューで「PowerShell」を右クリック →「管理者として実行」)で、以下を実行してください。
+
+```powershell
+choco install make -y
+choco install cmake -y
+```
+
+インストール後は**新しいシェルを開いて**、`make --version` と `cmake --version`(3.20 以上)が実行できることを確認してください(PATH は Chocolatey が自動で設定します)。
+
+> 補足: Visual Studio 2022 の「C++によるデスクトップ開発」ワークロードには CMake が同梱されており、「Developer PowerShell for VS 2022」から実行する場合はそちらが PATH に入るため、`choco install cmake` は不要です(入れても問題ありません)。
+
 make のセットアップ完了後、下記内容を実行します。
 
 ```bash

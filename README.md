@@ -139,7 +139,19 @@ Below are the steps to build with MSVC on Windows (both Release and Debug).
 - [Git](https://git-scm.com/) (to fetch submodules)
 - [Python](https://www.python.org/) 3.13 or later
 - [Poetry](https://python-poetry.org/) (used to install Conan into a managed virtual environment)
+- [Chocolatey](https://chocolatey.org/) (used to install make / CMake)
+- make
 - [CMake](https://cmake.org/) 3.20 or later
+
+You can install Python from the [python.org](https://www.python.org/) installer or via winget:
+
+```powershell
+winget install --id Python.Python.3.13 -e
+```
+
+The winget package sets up the `py` launcher and `PATH` automatically. After installing, **open a new shell** and confirm `py --version` reports 3.13 or later.
+
+> Note: This is normally unnecessary. But if a Microsoft Store stub (`WindowsApps\python.exe`) from a previous Python setup takes precedence and the `python` command opens the Store instead, disable `python.exe` / `python3.exe` under Settings > Apps > App execution aliases.
 
 ### 1. Clone the repository
 
@@ -164,7 +176,14 @@ Use the official installer. (See the [Poetry docs](https://python-poetry.org/doc
 (Invoke-WebRequest -Uri https://install.python-poetry.org -UseBasicParsing).Content | py -
 ```
 
-Confirm `poetry --version` works afterwards. Restart your shell (or add Poetry to `PATH`) if the command is not found.
+Confirm `poetry --version` works afterwards. If the command is not found, add Poetry's install location (`%APPDATA%\pypoetry\venv\Scripts`) to your user `PATH`:
+
+```powershell
+$p = "$env:APPDATA\pypoetry\venv\Scripts"
+[Environment]::SetEnvironmentVariable("Path",[Environment]::GetEnvironmentVariable("Path","User")+";$p","User")
+```
+
+The `PATH` change takes effect in newly opened shells. Restart your shell and re-check `poetry --version`.
 
 ### 3. Set up Conan
 
@@ -191,12 +210,23 @@ The host-context profiles actually used for the build are already provided in th
 
 The first build also builds the dependency (OpenCV) from source, so it can take 30+ minutes. It's recommended to run the build from an "x64 Native Tools Command Prompt for VS 2022" or "Developer PowerShell for VS 2022".
 
-#### Setting up make
+#### Setting up make / CMake
 
-For `make`, use [Make for Windows](https://gnuwin32.sourceforge.net/packages/make.htm).
-Under `Description`, download the `Setup` for `Complete package, except sources`.
-Once downloaded, run the installer to install make.
-After installation, make sure it's added to `PATH`.
+Install `make` and CMake with [Chocolatey](https://chocolatey.org/) (same setup as CI).
+
+If Chocolatey is not installed yet, install it first by following the [official instructions](https://chocolatey.org/install) in an **elevated PowerShell**.
+
+Then, in an **elevated PowerShell** (right-click "PowerShell" in the Start menu and choose "Run as administrator"), run:
+
+```powershell
+choco install make -y
+choco install cmake -y
+```
+
+After installation, **open a new shell** and confirm `make --version` and `cmake --version` (3.20 or later) work (Chocolatey sets up `PATH` automatically).
+
+> Note: The "Desktop development with C++" workload of Visual Studio 2022 ships CMake, and running from a "Developer PowerShell for VS 2022" puts it on `PATH`, so `choco install cmake` is not required in that case (installing it anyway is harmless).
+
 Once make is set up, run the following:
 
 ```bash
