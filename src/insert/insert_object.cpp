@@ -199,9 +199,17 @@ bool InsertObject::Insert(
             std::string alias = p->asSubFilter
                 ? make_alias_as_sub(*p->fixedFrm, g.vi_start, g.vi_end, p->ignoreAspectRatio)
                 : make_alias(*p->fixedFrm, g.vi_start, g.vi_end, p->ignoreAspectRatio);
-            OBJECT_HANDLE handle = edit->create_object_from_alias(
-                alias.c_str(), layer, g.start, g.end - g.start + 1);
-            if (!handle) { // insert 失敗時
+                bool inserted = false;
+                for (int i = 0; i < 100; i++) {
+                    OBJECT_HANDLE handle = edit->create_object_from_alias(
+                        alias.c_str(), layer, g.start, g.end - g.start + 1);
+                    if (handle) {
+                        inserted = true;
+                        break;
+                    }
+                    layer += 1;
+                }
+            if (!inserted) { // insert 失敗時
                 p->ok = false;
                 return;
             }

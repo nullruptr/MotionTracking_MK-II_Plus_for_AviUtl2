@@ -521,9 +521,7 @@ LRESULT CALLBACK MainFrame::wnd_proc(HWND hwnd, UINT message, WPARAM wparam, LPA
                     );
                     if (!ok)
                         MessageBoxW(hwnd,
-                            L"Failed to insert object.\n"
-                            "An object may already exist on this layer.\n"
-                            "Please select a different layer and try again.",
+                            L"Failed to insert object.",
                             L"Insert failed", MB_OK | MB_ICONERROR);
                     SetFocus(nullptr);
                     self->m_during_operation = false;
