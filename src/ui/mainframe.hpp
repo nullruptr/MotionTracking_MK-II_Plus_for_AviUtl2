@@ -31,7 +31,18 @@ enum class IDC_Button : int {
     AsSubFilter,
     InvertPosition,
     IgnoreAspectRatio,
+    SmoothEnable,
+    SgStrengthCombo,
+    SgWindowCombo,
+    SgOrderCombo,
 };
+
+// SGフィルタの強さ
+struct SGStrengthPreset { int windowIndex; int orderIndex; };
+extern const wchar_t* sg_strength_options[];
+extern const int SG_STRENGTH_N;
+extern const int SG_STRENGTH_DETAIL_INDEX;
+extern const SGStrengthPreset sg_strength_presets[];
 
 extern HINSTANCE    hModuleDLL;
 extern EDIT_HANDLE* edit_handle; // main.cpp で定義。グローバルように参照。後で消す。

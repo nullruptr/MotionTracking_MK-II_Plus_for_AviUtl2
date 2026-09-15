@@ -26,6 +26,10 @@ jobs:
           curl https://raw.githubusercontent.com/opencv/opencv/4.13.0/LICENSE -o opencv.txt
           curl https://raw.githubusercontent.com/opencv/opencv_contrib/4.13.0/LICENSE -o opencv_contrib.txt
 
+      - name: Download Eigen LICENSE
+        run: |
+          curl -L https://gitlab.com/libeigen/eigen/-/raw/3.4.1/COPYING.MPL2 -o eigen.txt
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -77,6 +81,9 @@ jobs:
           # OpenCV のライセンス
           Copy-Item opencv.txt pack\Licenses
           Copy-Item opencv_contrib.txt pack\Licenses
+
+          # Eigen のライセンス
+          Copy-Item eigen.txt pack\Licenses
 
           # README
           Copy-Item README.ja.md pack

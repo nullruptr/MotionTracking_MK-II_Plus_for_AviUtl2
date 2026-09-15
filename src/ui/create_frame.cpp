@@ -11,6 +11,12 @@ extern CONFIG_HANDLE* config;
 constexpr const wchar_t* track_method[] = { L"MIL", L"KCF", L"CSRT", L"DaSiamRPN", L"Nano", L"Vit" };
 constexpr int METHOD_N = sizeof(track_method) / sizeof(track_method[0]);
 
+constexpr const wchar_t* sg_window_options[] = { L"3", L"5", L"7", L"9", L"11" };
+constexpr int SG_WINDOW_N = sizeof(sg_window_options) / sizeof(sg_window_options[0]);
+
+constexpr const wchar_t* sg_order_options[] = { L"2", L"3", L"4" };
+constexpr int SG_ORDER_N = sizeof(sg_order_options) / sizeof(sg_order_options[0]);
+
 void MainFrame::CreateControls() {
     // File ボタン（クリックでポップアップメニュー）
     // Options ボタン（クリックで設定ウィンドウ）
@@ -309,6 +315,121 @@ void MainFrame::CreateControls() {
         nullptr);
     SetWindowLongPtr(check_ignore_aspect, GWLP_USERDATA, 1);
     SendMessage(check_ignore_aspect, WM_SETFONT, (WPARAM)hfont, TRUE);
+
+    y_pos += item_height + DIP(5);
+
+    // Smooth チェックボックスを作成
+    HWND check_smooth = CreateWindowEx(
+        0,
+        WC_BUTTON,
+        config->translate(config, L"Smooth (Savitzky–Golay filter)"),
+        WS_VISIBLE | WS_CHILD | BS_OWNERDRAW,
+        DIP(10), y_pos, DIP(300), item_height,
+        m_hwnd,
+        (HMENU)IDC_Button::SmoothEnable,
+        m_hInst,
+        nullptr);
+    SetWindowLongPtr(check_smooth, GWLP_USERDATA, 1);
+    SendMessage(check_smooth, WM_SETFONT, (WPARAM)hfont, TRUE);
+
+    y_pos += item_height + DIP(5);
+
+    // Strength ラベルを作成
+    HWND label_strength = CreateWindowEx(
+        0,
+        WC_STATIC,
+        config->translate(config, L"Strength"),
+        WS_VISIBLE | WS_CHILD | SS_LEFTNOWORDWRAP,
+        DIP(10), y_pos, DIP(100), item_height,
+        m_hwnd,
+        (HMENU)-1,
+        m_hInst,
+        nullptr);
+    SendMessage(label_strength, WM_SETFONT, (WPARAM)hfont, TRUE);
+
+    // Strength コンボボックスを作成
+    HWND combo_strength = CreateWindowEx(
+        0,
+        WC_COMBOBOX,
+        nullptr,
+        WS_VISIBLE | WS_CHILD | CBS_DROPDOWNLIST | CBS_OWNERDRAWFIXED | CBS_HASSTRINGS,
+        DIP(95), y_pos, DIP(180), DIP(200), // ドロップダウンが開くように高さを大きめに確保
+        m_hwnd,
+        (HMENU)IDC_Button::SgStrengthCombo,
+        m_hInst,
+        nullptr);
+    SendMessage(combo_strength, WM_SETFONT, (WPARAM)hfont, TRUE);
+    for (int i = 0; i < SG_STRENGTH_N; i++) {
+        SendMessage(combo_strength, CB_ADDSTRING, 0, (LPARAM)sg_strength_options[i]);
+    }
+    constexpr int default_strength_index = 1; // Default to 中
+    SendMessage(combo_strength, CB_SETCURSEL, default_strength_index, 0);
+
+    y_pos += item_height + DIP(5);
+
+    // Window ラベルを作成
+    HWND label_window = CreateWindowEx(
+        0,
+        WC_STATIC,
+        config->translate(config, L"Window"),
+        WS_VISIBLE | WS_CHILD | SS_LEFTNOWORDWRAP,
+        DIP(10), y_pos, DIP(100), item_height,
+        m_hwnd,
+        (HMENU)-1,
+        m_hInst,
+        nullptr);
+    SendMessage(label_window, WM_SETFONT, (WPARAM)hfont, TRUE);
+
+    // window コンボボックスを作成
+    HWND combo_window = CreateWindowEx(
+        0,
+        WC_COMBOBOX,
+        nullptr,
+        WS_VISIBLE | WS_CHILD | CBS_DROPDOWNLIST | CBS_OWNERDRAWFIXED | CBS_HASSTRINGS,
+        DIP(95), y_pos, DIP(180), DIP(200), // ドロップダウンが開くように高さを大きめに確保
+        m_hwnd,
+        (HMENU)IDC_Button::SgWindowCombo,
+        m_hInst,
+        nullptr);
+    SendMessage(combo_window, WM_SETFONT, (WPARAM)hfont, TRUE);
+    for (int i = 0; i < SG_WINDOW_N; i++) {
+        SendMessage(combo_window, CB_ADDSTRING, 0, (LPARAM)sg_window_options[i]);
+    }
+    SendMessage(combo_window, CB_SETCURSEL, sg_strength_presets[default_strength_index].windowIndex, 0);
+    EnableWindow(combo_window, default_strength_index == SG_STRENGTH_DETAIL_INDEX); // 詳細以外は自動設定なので無効化
+
+    y_pos += item_height + DIP(5);
+
+    // Order ラベルを作成
+    HWND label_polyorder = CreateWindowEx(
+        0,
+        WC_STATIC,
+        config->translate(config, L"Polyorder"),
+        WS_VISIBLE | WS_CHILD | SS_LEFTNOWORDWRAP,
+        DIP(10), y_pos, DIP(100), item_height,
+        m_hwnd,
+        (HMENU)-1,
+        m_hInst,
+        nullptr);
+    SendMessage(label_polyorder, WM_SETFONT, (WPARAM)hfont, TRUE);
+
+    // polyorder コンボボックスを作成
+    HWND combo_polyorder = CreateWindowEx(
+        0,
+        WC_COMBOBOX,
+        nullptr,
+        WS_VISIBLE | WS_CHILD | CBS_DROPDOWNLIST | CBS_OWNERDRAWFIXED | CBS_HASSTRINGS,
+        DIP(95), y_pos, DIP(180), DIP(200), // ドロップダウンが開くように高さを大きめに確保
+        m_hwnd,
+        (HMENU)IDC_Button::SgOrderCombo,
+        m_hInst,
+        nullptr);
+    SendMessage(combo_polyorder, WM_SETFONT, (WPARAM)hfont, TRUE);
+    for (int i = 0; i < SG_ORDER_N; i++) {
+        SendMessage(combo_polyorder, CB_ADDSTRING, 0, (LPARAM)sg_order_options[i]);
+    }
+    SendMessage(combo_polyorder, CB_SETCURSEL, sg_strength_presets[default_strength_index].orderIndex, 0);
+    EnableWindow(combo_polyorder, default_strength_index == SG_STRENGTH_DETAIL_INDEX); // 詳細以外は自動設定なので無効化
 
     y_pos += item_height + DIP(5);
 

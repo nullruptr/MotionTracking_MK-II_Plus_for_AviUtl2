@@ -1,7 +1,9 @@
 [requires]
 opencv/4.13.0
+eigen/3.4.1
 
 [options]
+eigen/*:MPL2_only=True
 opencv/*:with_jpeg=False
 opencv/*:with_png=False
 opencv/*:with_tiff=False

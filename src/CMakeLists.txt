@@ -10,6 +10,7 @@ add_library(${PROJECT_NAME} SHARED)
 target_compile_definitions(${PROJECT_NAME} PRIVATE $<$<CONFIG:Debug>:_DEBUG>)
 
 find_package(OpenCV REQUIRED)
+find_package(Eigen3 REQUIRED)
 
 target_sources(
     ${PROJECT_NAME}
@@ -20,6 +21,7 @@ target_sources(
     ui/create_frame.cpp
     ui/ownerdraw.cpp
     insert/insert_object.cpp
+    savgol/savgol.cpp
     filter.cpp
     main.cpp
     utils.cpp
@@ -36,6 +38,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     shell32
     dwmapi
     opencv::opencv
+    Eigen3::Eigen
 )
 target_compile_definitions(${PROJECT_NAME} PRIVATE
     UNICODE

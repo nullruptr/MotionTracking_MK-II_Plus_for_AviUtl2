@@ -37,6 +37,16 @@ std::vector<cv::Rect2d> track_result;
 constexpr const wchar_t* track_method[] = { L"MIL", L"KCF", L"CSRT", L"DaSiamRPN", L"Nano", L"Vit"};
 constexpr int METHOD_N = sizeof(track_method) / sizeof(track_method[0]);
 
+const wchar_t* sg_strength_options[] = { L"Weak", L"Medium", L"Strong", L"Custom" };
+const int SG_STRENGTH_N = sizeof(sg_strength_options) / sizeof(sg_strength_options[0]);
+const int SG_STRENGTH_DETAIL_INDEX = SG_STRENGTH_N - 1;
+
+const SGStrengthPreset sg_strength_presets[] = {
+    { 1, 1 }, // Weak: window=5,  order=3
+    { 2, 0 }, // Medium: window=7,  order=2
+    { 4, 0 }, // Strong: window=11, order=2
+};
+
 
 // RequiredVersion / InitializePlugin は main.cpp に移設 (バージョン判定を実装)
 
@@ -51,9 +61,6 @@ EXTERN_C __declspec(dllexport) void InitializeConfig(CONFIG_HANDLE* handle) {
 EXTERN_C __declspec(dllexport) void UninitializePlugin() {
     cv::destroyAllWindows();
 }
-
-
-// --
 
 const char alias[] = u8R"(
 [Object]
@@ -421,11 +428,31 @@ LRESULT CALLBACK MainFrame::wnd_proc(HWND hwnd, UINT message, WPARAM wparam, LPA
             switch (static_cast<IDC_Button>(LOWORD(wparam))) {
                 case IDC_Button::AsSubFilter:
                 case IDC_Button::InvertPosition:
-                case IDC_Button::IgnoreAspectRatio: {
+                case IDC_Button::IgnoreAspectRatio:
+                case IDC_Button::SmoothEnable: {
                     HWND hBtn = (HWND)lparam;
                     int state = (int)GetWindowLongPtr(hBtn, GWLP_USERDATA);
                     SetWindowLongPtr(hBtn, GWLP_USERDATA, (LONG_PTR)!state);
                     InvalidateRect(hBtn, nullptr, TRUE);
+                    SetFocus(nullptr);
+                    return 0;
+                }
+                case IDC_Button::SgStrengthCombo: {
+                    if (HIWORD(wparam) != CBN_SELCHANGE) return 0;
+
+                    HWND hCombo = (HWND)lparam;
+                    int strengthSel = (int)SendMessage(hCombo, CB_GETCURSEL, 0, 0);
+                    HWND hWindowCombo = GetDlgItem(hwnd, (int)IDC_Button::SgWindowCombo);
+                    HWND hOrderCombo  = GetDlgItem(hwnd, (int)IDC_Button::SgOrderCombo);
+
+                    bool isDetail = (strengthSel == SG_STRENGTH_DETAIL_INDEX);
+                    EnableWindow(hWindowCombo, isDetail);
+                    EnableWindow(hOrderCombo, isDetail);
+
+                    if (!isDetail) {
+                        SendMessage(hWindowCombo, CB_SETCURSEL, sg_strength_presets[strengthSel].windowIndex, 0);
+                        SendMessage(hOrderCombo, CB_SETCURSEL, sg_strength_presets[strengthSel].orderIndex, 0);
+                    }
                     SetFocus(nullptr);
                     return 0;
                 }
