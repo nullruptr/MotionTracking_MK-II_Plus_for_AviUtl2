@@ -21,3 +21,5 @@ enum class IDC_Toolbar : UINT {
 
 // ProgressDlg がバックグラウンド解析の完了を検知したときに、本体ウィンドウへ通知するメッセージ
 constexpr UINT WM_APP_ANALYZE_DONE = WM_APP + 1;
+// NumericDataDlg が閉じられたときに、本体ウィンドウへ通知するメッセージ
+constexpr UINT WM_APP_NUMERIC_DATA_CLOSED = WM_APP + 2;

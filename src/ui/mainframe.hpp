@@ -35,6 +35,7 @@ enum class IDC_Button : int {
     SgStrengthCombo,
     SgWindowCombo,
     SgOrderCombo,
+    NumericData,
 };
 
 // SGフィルタの強さ

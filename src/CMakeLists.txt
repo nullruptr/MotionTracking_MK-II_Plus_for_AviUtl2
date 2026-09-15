@@ -17,6 +17,7 @@ target_sources(
     PRIVATE
     tracker/tracker.cpp
     ui/progress_dlg/progress_dlg.cpp
+    ui/numeric_data/numeric_data.cpp
     ui/mainframe.cpp
     ui/create_frame.cpp
     ui/ownerdraw.cpp

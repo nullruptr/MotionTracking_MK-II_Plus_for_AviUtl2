@@ -329,7 +329,7 @@ void MainFrame::CreateControls() {
         (HMENU)IDC_Button::SmoothEnable,
         m_hInst,
         nullptr);
-    SetWindowLongPtr(check_smooth, GWLP_USERDATA, 1);
+    SetWindowLongPtr(check_smooth, GWLP_USERDATA, 0);
     SendMessage(check_smooth, WM_SETFONT, (WPARAM)hfont, TRUE);
 
     y_pos += item_height + DIP(5);
@@ -430,6 +430,21 @@ void MainFrame::CreateControls() {
     }
     SendMessage(combo_polyorder, CB_SETCURSEL, sg_strength_presets[default_strength_index].orderIndex, 0);
     EnableWindow(combo_polyorder, default_strength_index == SG_STRENGTH_DETAIL_INDEX); // 詳細以外は自動設定なので無効化
+
+    y_pos += item_height + DIP(5);
+
+    // Numeric Data ボタンを作成
+    HWND button_numeric_data = CreateWindowEx(
+        0,
+        WC_BUTTON,
+        config->translate(config, L"Numeric Data"),
+        WS_VISIBLE | WS_CHILD | BS_OWNERDRAW,
+        DIP(10), y_pos, DIP(300), item_height,
+        m_hwnd,
+        (HMENU)IDC_Button::NumericData,
+        m_hInst,
+        nullptr);
+    SendMessage(button_numeric_data, WM_SETFONT, (WPARAM)hfont, TRUE);
 
     y_pos += item_height + DIP(5);
 

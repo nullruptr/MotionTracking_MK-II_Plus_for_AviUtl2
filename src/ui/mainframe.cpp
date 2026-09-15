@@ -2,6 +2,7 @@
 #include "constants.hpp"
 #include "ownerdraw.hpp"
 #include "progress_dlg/progress_dlg.hpp"
+#include "numeric_data/numeric_data.hpp"
 #include "aviutl2_sdk/plugin2.h"
 #include <windows.h>
 #include <commdlg.h>
@@ -234,6 +235,7 @@ static void EnableOperationButtons(HWND hwnd, BOOL enable) {
         IDC_Button::Analyze,
         IDC_Button::ViewResult,
         IDC_Button::ClearResult,
+        IDC_Button::NumericData,
         IDC_Button::InsertObject,
     };
     for (auto id : targets) {
@@ -242,6 +244,21 @@ static void EnableOperationButtons(HWND hwnd, BOOL enable) {
     // Export Object File 等のポップアップメニューを出す File ボタン、Info ボタンも一緒に無効化
     EnableWindow(GetDlgItem(hwnd, (int)IDC_Toolbar::File), enable);
     EnableWindow(GetDlgItem(hwnd, (int)IDC_Toolbar::Info), enable);
+}
+
+// コンボボックスの現在選択されている項目の文字列を数値として取得する
+static int GetComboIntValue(HWND hCombo) {
+    wchar_t buf[32] = L"0";
+    int sel = (int)SendMessage(hCombo, CB_GETCURSEL, 0, 0);
+    SendMessage(hCombo, CB_GETLBTEXT, sel, (LPARAM)buf);
+    return _wtoi(buf);
+}
+
+// Smooth チェックボックス・Window/Polyorder コンボから、SGフィルタの設定を取得する
+static void GetSmoothSettings(HWND hwnd, bool& enable, int& window, int& polyorder) {
+    enable = (bool)GetWindowLongPtr(GetDlgItem(hwnd, (int)IDC_Button::SmoothEnable), GWLP_USERDATA);
+    window = GetComboIntValue(GetDlgItem(hwnd, (int)IDC_Button::SgWindowCombo));
+    polyorder = GetComboIntValue(GetDlgItem(hwnd, (int)IDC_Button::SgOrderCombo));
 }
 
 LRESULT CALLBACK MainFrame::wnd_proc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lparam) {
@@ -307,6 +324,11 @@ LRESULT CALLBACK MainFrame::wnd_proc(HWND hwnd, UINT message, WPARAM wparam, LPA
             self->m_during_operation = false;
             EnableOperationButtons(hwnd, TRUE);
             return 0;
+        case WM_APP_NUMERIC_DATA_CLOSED:
+            // NumericDataDlgが閉じられた通知
+            self->m_during_operation = false;
+            EnableOperationButtons(hwnd, TRUE);
+            return 0;
         case WM_COMMAND:
             // ツールバー・メニューからのコマンド
             switch (static_cast<IDC_Menu>(LOWORD(wparam))) {
@@ -346,6 +368,8 @@ LRESULT CALLBACK MainFrame::wnd_proc(HWND hwnd, UINT message, WPARAM wparam, LPA
                     bool ignoreAspectRatio = (bool)GetWindowLongPtr(GetDlgItem(hwnd, (int)IDC_Button::IgnoreAspectRatio), GWLP_USERDATA);
                     bool invertPosition = (bool)GetWindowLongPtr(GetDlgItem(hwnd, (int)IDC_Button::InvertPosition), GWLP_USERDATA);
                     bool asSubFilter = (bool)GetWindowLongPtr(GetDlgItem(hwnd, (int)IDC_Button::AsSubFilter), GWLP_USERDATA);
+                    bool smoothEnable; int smoothWindow, smoothPolyorder;
+                    GetSmoothSettings(hwnd, smoothEnable, smoothWindow, smoothPolyorder);
                     bool ok = InsertObject::ExportToFile(
                         self->m_tracker.Results(),
                         self->m_tracker.Found(),
@@ -354,7 +378,10 @@ LRESULT CALLBACK MainFrame::wnd_proc(HWND hwnd, UINT message, WPARAM wparam, LPA
                         filepath,
                         ignoreAspectRatio,
                         invertPosition,
-                        asSubFilter
+                        asSubFilter,
+                        smoothEnable,
+                        smoothWindow,
+                        smoothPolyorder
                     );
                     if (!ok) {
                         MessageBox(hwnd, TEXT("Failed to save Alias"), TEXT("Error"), MB_OK);
@@ -518,6 +545,37 @@ LRESULT CALLBACK MainFrame::wnd_proc(HWND hwnd, UINT message, WPARAM wparam, LPA
                     }
                     return 0;
                 }
+                case IDC_Button::NumericData:
+                {
+                    if (self->m_during_operation || self->m_tracker.m_analyzing) {
+                        MessageBoxW(hwnd, config->translate(config, L"Another operation is in progress."), L"Operation Error", MB_OK | MB_ICONWARNING);
+                        SetFocus(nullptr);
+                        return 0;
+                    }
+                    self->m_during_operation = true;
+                    EnableOperationButtons(hwnd, FALSE);
+                    if (!self->m_tracker.HasResult()) {
+                        MessageBoxW(hwnd, config->translate(config, L"No track data."), L"Operation Error", MB_OK | MB_ICONWARNING);
+                        SetFocus(nullptr);
+                        self->m_during_operation = false;
+                        EnableOperationButtons(hwnd, TRUE);
+                        return 0;
+                    }
+                    bool smoothEnable; int smoothWindow, smoothPolyorder;
+                    GetSmoothSettings(hwnd, smoothEnable, smoothWindow, smoothPolyorder);
+
+                    std::vector<double> x, y, width, height, smoothX, smoothY;
+                    InsertObject::ComputeSmoothPreview(
+                        self->m_tracker.Results(), self->m_tracker.Found(),
+                        smoothEnable, smoothWindow, smoothPolyorder,
+                        x, y, width, height, smoothX, smoothY);
+
+                    // Numeric Dataウィンドウが開いている間は操作系ボタンを無効化したままにし、
+                    // WM_APP_NUMERIC_DATA_CLOSED(ウィンドウ破棄時の通知)で解除する
+                    NumericDataDlg::Create(hwnd, self->m_hInst, self->m_tracker.RangeStart(), x, y, width, height, smoothX, smoothY);
+                    SetFocus(nullptr);
+                    return 0;
+                }
                 case IDC_Button::InsertObject:
                 {
                     if (self->m_during_operation || self->m_tracker.m_analyzing) {
@@ -537,6 +595,8 @@ LRESULT CALLBACK MainFrame::wnd_proc(HWND hwnd, UINT message, WPARAM wparam, LPA
                     bool ignoreAspectRatio = (bool)GetWindowLongPtr(GetDlgItem(hwnd, (int)IDC_Button::IgnoreAspectRatio), GWLP_USERDATA);
                     bool invertPosition = (bool)GetWindowLongPtr(GetDlgItem(hwnd, (int)IDC_Button::InvertPosition), GWLP_USERDATA);
                     bool asSubFilter = (bool)GetWindowLongPtr(GetDlgItem(hwnd, (int)IDC_Button::AsSubFilter), GWLP_USERDATA);
+                    bool smoothEnable; int smoothWindow, smoothPolyorder;
+                    GetSmoothSettings(hwnd, smoothEnable, smoothWindow, smoothPolyorder);
                     bool ok = InsertObject::Insert(
                         self->m_tracker.Results(),
                         self->m_tracker.Found(),
@@ -544,7 +604,10 @@ LRESULT CALLBACK MainFrame::wnd_proc(HWND hwnd, UINT message, WPARAM wparam, LPA
                         self->m_edit_handle,
                         ignoreAspectRatio,
                         invertPosition,
-                        asSubFilter
+                        asSubFilter,
+                        smoothEnable,
+                        smoothWindow,
+                        smoothPolyorder
                     );
                     if (!ok)
                         MessageBoxW(hwnd,

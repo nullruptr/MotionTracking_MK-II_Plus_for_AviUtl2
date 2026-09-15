@@ -1,6 +1,8 @@
 #include <cmath>
 #include <cstdio>
+#include <algorithm>
 #include "insert_object.hpp"
+#include "savgol/savgol.hpp"
 
 std::string InsertObject::make_alias(const std::vector<FRMFIX>& fixedFrm, int vi_start, int vi_end, bool ignoreAspectRatio) {
     std::string s;
@@ -161,7 +163,10 @@ bool InsertObject::Insert(
     EDIT_HANDLE* edit,
     bool ignoreAspectRatio,
     bool invertPosition,
-    bool asSubFilter)
+    bool asSubFilter,
+    bool smoothEnable,
+    int  smoothWindow,
+    int  smoothPolyorder)
 {
     if (results.empty()) return false;
 
@@ -184,14 +189,18 @@ bool InsertObject::Insert(
         bool ignoreAspectRatio;
         bool invertPosition;
         bool asSubFilter;
+        bool smoothEnable;
+        int  smoothWindow;
+        int  smoothPolyorder;
         bool ok;
-    } p { &rect_list, &err_list, &inter_list, &fixedFrm, &groups, rangeStart, ignoreAspectRatio, invertPosition, asSubFilter, false };
+    } p { &rect_list, &err_list, &inter_list, &fixedFrm, &groups, rangeStart, ignoreAspectRatio, invertPosition, asSubFilter, smoothEnable, smoothWindow, smoothPolyorder, false };
 
     edit->call_edit_section_param(&p, [](void* v, EDIT_SECTION* edit) {
         auto* p = static_cast<Param*>(v);
 
         fix_frame(*p->rect_list, *p->err_list, *p->inter_list,
-                  *p->fixedFrm, edit->info->width, edit->info->height, p->rangeStart, p->ignoreAspectRatio, p->invertPosition);
+                  *p->fixedFrm, edit->info->width, edit->info->height, p->rangeStart, p->ignoreAspectRatio, p->invertPosition,
+                  p->smoothEnable, p->smoothWindow, p->smoothPolyorder);
         groupObject(*p->fixedFrm, *p->groups, p->rangeStart);
 
         int layer = edit->info->layer;
@@ -228,7 +237,10 @@ bool InsertObject::ExportToFile(
     const std::wstring& filepath,
     bool ignoreAspectRatio,
     bool invertPosition,
-    bool asSubFilter)
+    bool asSubFilter,
+    bool smoothEnable,
+    int  smoothWindow,
+    int  smoothPolyorder)
 {
     if (results.empty()) return false;
 
@@ -251,15 +263,19 @@ bool InsertObject::ExportToFile(
         bool ignoreAspectRatio;
         bool invertPosition;
         bool asSubFilter;
+        bool smoothEnable;
+        int  smoothWindow;
+        int  smoothPolyorder;
         std::string text;
         bool ok;
-    } p { &rect_list, &err_list, &inter_list, &fixedFrm, &groups, rangeStart, ignoreAspectRatio, invertPosition, asSubFilter, "", false };
+    } p { &rect_list, &err_list, &inter_list, &fixedFrm, &groups, rangeStart, ignoreAspectRatio, invertPosition, asSubFilter, smoothEnable, smoothWindow, smoothPolyorder, "", false };
 
     edit->call_edit_section_param(&p, [](void* v, EDIT_SECTION* edit) {
         auto* p = static_cast<Param*>(v);
 
         fix_frame(*p->rect_list, *p->err_list, *p->inter_list,
-                  *p->fixedFrm, edit->info->width, edit->info->height, p->rangeStart, p->ignoreAspectRatio, p->invertPosition);
+                  *p->fixedFrm, edit->info->width, edit->info->height, p->rangeStart, p->ignoreAspectRatio, p->invertPosition,
+                  p->smoothEnable, p->smoothWindow, p->smoothPolyorder);
         groupObject(*p->fixedFrm, *p->groups, p->rangeStart);
 
         for (const auto& g : *p->groups) {
@@ -322,45 +338,74 @@ int InsertObject::find_inter_frame(std::vector<bool> &err_list, std::vector<UINT
     return interfrm_count;
 }
 
-void InsertObject::fix_frame(std::vector<cv::Rect2d> &rect_list, std::vector<bool> &err_list, std::vector<UINT32> &inter_list, std::vector<FRMFIX> &out, int frm_w, int frm_h, int rangeStart, bool ignoreAspectRatio, bool invertPosition)
+void InsertObject::interpolate(std::vector<cv::Rect2d> &rect_list, std::vector<bool> &err_list, const std::vector<UINT32> &inter_list)
+{
+    for (size_t f = 0; f < inter_list.size(); f++)
+    {
+        int v_idx = inter_list[f];
+
+        cv::Point prevC(getCenter(rect_list[v_idx - 1]));
+        int prevW = (int)rect_list[v_idx - 1].width;
+        int prevH = (int)rect_list[v_idx - 1].height;
+
+        cv::Point nextC(getCenter(rect_list[v_idx + 1]));
+        int nextW = (int)rect_list[v_idx + 1].width;
+        int nextH = (int)rect_list[v_idx + 1].height;
+
+        int nowW = (prevW + nextW) / 2;
+        int nowH = (prevH + nextH) / 2;
+        int now_cx = (prevC.x + nextC.x) / 2;
+        int now_cy = (prevC.y + nextC.y) / 2;
+
+        rect_list[v_idx].x = now_cx - (nowW / 2);
+        rect_list[v_idx].y = now_cy - (nowH / 2);
+        rect_list[v_idx].width = nowW;
+        rect_list[v_idx].height = nowH;
+        err_list[v_idx] = true;
+    }
+}
+
+void InsertObject::fix_frame(std::vector<cv::Rect2d> &rect_list, std::vector<bool> &err_list, std::vector<UINT32> &inter_list, std::vector<FRMFIX> &out, int frm_w, int frm_h, int rangeStart, bool ignoreAspectRatio, bool invertPosition, bool smoothEnable, int smoothWindow, int smoothPolyorder)
 {
     //TODO
     //Interpolation phase
-    if (inter_list.size() > 0)
-    {
-        for (size_t f = 0; f < inter_list.size(); f++)
-        {
-            int v_idx = inter_list[f];
-            int now_cx, now_cy, now_tlx, now_tly;
-            int prevW, nowW, nextW;
-            int prevH, nowH, nextH;
+    interpolate(rect_list, err_list, inter_list);
 
-            cv::Point prevC(getCenter(rect_list[v_idx - 1]));
-            prevW = (int)rect_list[v_idx - 1].width;
-            prevH = (int)rect_list[v_idx - 1].height;
-
-            cv::Point nextC(getCenter(rect_list[v_idx + 1]));
-            nextW = (int)rect_list[v_idx + 1].width;
-            nextH = (int)rect_list[v_idx + 1].height;
-
-            nowW = (prevW + nextW) / 2;
-            nowH = (prevH + nextH) / 2;
-
-            now_cx = (prevC.x + nextC.x) / 2;
-            now_cy = (prevC.y + nextC.y) / 2;
-
-            now_tlx = now_cx - (nowW / 2);
-            now_tly = now_cy - (nowH / 2);
-            //Update box data
-            rect_list[v_idx].x = now_tlx;
-            rect_list[v_idx].y = now_tly;
-            rect_list[v_idx].width = nowW;
-            rect_list[v_idx].height = nowH;
-            //Update error state
-            err_list[v_idx] = true;
+    // SGフィルタで平滑化 (連続してトラッキングできている区間ごとに実施し、ロスト区間はまたがない)
+    if (smoothEnable) {
+        std::vector<double> cxArr(rect_list.size()), cyArr(rect_list.size());
+        std::vector<double> wArr(rect_list.size()), hArr(rect_list.size());
+        for (size_t i = 0; i < rect_list.size(); i++) {
+            cv::Point c = getCenter(rect_list[i]);
+            cxArr[i] = c.x;
+            cyArr[i] = c.y;
+            wArr[i]  = rect_list[i].width;
+            hArr[i]  = rect_list[i].height;
         }
 
+        size_t segStart = 0;
+        bool inSeg = false;
+        for (size_t i = 0; i <= err_list.size(); i++) {
+            bool cur = (i < err_list.size()) && err_list[i];
+            if (cur && !inSeg) { segStart = i; inSeg = true; }
+            if (!cur && inSeg) {
+                size_t segEnd = i - 1;
+                smoothSegment(cxArr, (int)segStart, (int)segEnd, smoothWindow, smoothPolyorder);
+                smoothSegment(cyArr, (int)segStart, (int)segEnd, smoothWindow, smoothPolyorder);
+                smoothSegment(wArr,  (int)segStart, (int)segEnd, smoothWindow, smoothPolyorder);
+                smoothSegment(hArr,  (int)segStart, (int)segEnd, smoothWindow, smoothPolyorder);
+                inSeg = false;
+            }
+        }
+
+        for (size_t i = 0; i < rect_list.size(); i++) {
+            rect_list[i].width  = wArr[i];
+            rect_list[i].height = hArr[i];
+            rect_list[i].x = cxArr[i] - wArr[i] / 2.0;
+            rect_list[i].y = cyArr[i] - hArr[i] / 2.0;
+        }
     }
+
     //Transform to AviUtl coordiante
     int dX = frm_w / -2;
     int dY = frm_h / -2;
@@ -442,6 +487,91 @@ void InsertObject::groupObject(std::vector<FRMFIX> &fixedframes, std::vector<FRM
             buf.start = buf.vi_start + rangeStart;
             buf.end = buf.vi_end + rangeStart;
             out.push_back(buf);
+        }
+    }
+}
+
+void InsertObject::smoothSegment(std::vector<double>& data, int segStart, int segEnd, int window, int polyorder)
+{
+    int segLen = segEnd - segStart + 1;
+    if (window < 3 || polyorder < 1 || segLen <= polyorder) return; // 平滑化できないほど短い区間はそのまま
+
+    std::vector<double> result(segLen);
+    for (int i = 0; i < segLen; i++) {
+        // 区間の端では対称に取れる範囲まで窓を縮める
+        int maxHalf = std::min(i, segLen - 1 - i);
+        int half = std::min(window / 2, maxHalf);
+        int w = half * 2 + 1;
+        int order = std::min(polyorder, w - 1); // 次数は窓サイズ未満である必要がある
+
+        if (w <= order) {
+            result[i] = data[segStart + i];
+            continue;
+        }
+
+        Eigen::RowVectorXd coeff = CalcSavGolCoeff((size_t)w, (unsigned int)order, 0, 1.0);
+
+        double smoothed = 0.0;
+        for (int j = -half; j <= half; j++) {
+            smoothed += coeff[j + half] * data[segStart + i + j];
+        }
+        result[i] = smoothed;
+    }
+
+    for (int i = 0; i < segLen; i++) data[segStart + i] = result[i];
+}
+
+void InsertObject::ComputeSmoothPreview(
+    const std::vector<cv::Rect2d>& results,
+    const std::vector<bool>& found,
+    bool smoothEnable,
+    int  smoothWindow,
+    int  smoothPolyorder,
+    std::vector<double>& outX,
+    std::vector<double>& outY,
+    std::vector<double>& outWidth,
+    std::vector<double>& outHeight,
+    std::vector<double>& outSmoothX,
+    std::vector<double>& outSmoothY)
+{
+    auto rect_list = results;
+    auto err_list  = found;
+
+    std::vector<UINT32> inter_list;
+    find_inter_frame(err_list, inter_list);
+    interpolate(rect_list, err_list, inter_list);
+
+    outX.resize(rect_list.size());
+    outY.resize(rect_list.size());
+    outWidth.resize(rect_list.size());
+    outHeight.resize(rect_list.size());
+    for (size_t i = 0; i < rect_list.size(); i++) {
+        cv::Point c = getCenter(rect_list[i]);
+        outX[i] = c.x;
+        outY[i] = c.y;
+        outWidth[i] = rect_list[i].width;
+        outHeight[i] = rect_list[i].height;
+    }
+
+    if (!smoothEnable) {
+        outSmoothX.clear();
+        outSmoothY.clear();
+        return;
+    }
+
+    outSmoothX = outX;
+    outSmoothY = outY;
+
+    size_t segStart = 0;
+    bool inSeg = false;
+    for (size_t i = 0; i <= err_list.size(); i++) {
+        bool cur = (i < err_list.size()) && err_list[i];
+        if (cur && !inSeg) { segStart = i; inSeg = true; }
+        if (!cur && inSeg) {
+            size_t segEnd = i - 1;
+            smoothSegment(outSmoothX, (int)segStart, (int)segEnd, smoothWindow, smoothPolyorder);
+            smoothSegment(outSmoothY, (int)segStart, (int)segEnd, smoothWindow, smoothPolyorder);
+            inSeg = false;
         }
     }
 }
