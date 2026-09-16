@@ -101,6 +101,14 @@ Specifies the hue of the rectangle displayed in Object Selection and View Result
 This is the window scale of Select Object / View Result window. You can select a value from 0.00 to 1.00. If you select track bar as far right(--), it becomes disabled.
 The trackbar in View Result can become extremely small, because this plugin forcibly overrides the window size from outside. Please be careful when using this in View Result.
 
+##### Smooth (Savitzky–Golay filter)
+
+Reduces jitter in the tracking results.
+
+- Strength : Choose the filter strength from Weak / Medium / Strong / Custom. `Window > Polyorder` is required; otherwise an error occurs.
+- Window : Specifies the number of data points used in the calculation. Selectable from `3, 5, 7, 9, 11`. Too large a value loses fine detail; too small a value fails to remove enough noise.
+- Polyorder : The degree of the polynomial used for the fit. Selectable from `2, 3, 4`. Too high a value may introduce new noise due to overfitting; too low a value may over-smooth the result, making it unable to follow large movements.
+
 ##### Insert Object Options
 
 - As Sub-filter/部分フィルタ？ : Output as a sub filter.
