@@ -26,7 +26,9 @@ std::string InsertObject::make_alias(const std::vector<FRMFIX>& fixedFrm, int vi
     // X=x1,x2,...
     s += "X=";
     for (int i = vi_start; i <= vi_end; i++) {
-        s += std::to_string(fixedFrm[i].cx) + ".00";
+        char buf[32];
+        snprintf(buf, sizeof(buf), "%.2f", fixedFrm[i].cx);
+        s += buf;
         if (i < vi_end) s += ",";
     }
     s += ",直線移動,0\n";
@@ -34,7 +36,9 @@ std::string InsertObject::make_alias(const std::vector<FRMFIX>& fixedFrm, int vi
     // Y=y1,y2,...
     s += "Y=";
     for (int i = vi_start; i <= vi_end; i++) {
-        s += std::to_string(fixedFrm[i].cy) + ".00";
+        char buf[32];
+        snprintf(buf, sizeof(buf), "%.2f", fixedFrm[i].cy);
+        s += buf;
         if (i < vi_end) s += ",";
     }
 
@@ -58,8 +62,9 @@ std::string InsertObject::make_alias(const std::vector<FRMFIX>& fixedFrm, int vi
         // 拡大率=s1,s2,...,直線移動,0
         s += "拡大率=";
         for (int i = vi_start; i <= vi_end; i++) {
-            s += std::to_string((int)fixedFrm[i].scale);
-            s += ".000";
+            char buf[32];
+            snprintf(buf, sizeof(buf), "%.3f", fixedFrm[i].scale);
+            s += buf;
             if (i < vi_end) s += ",";
         }
         s += ",直線移動,0\n";
@@ -72,14 +77,18 @@ std::string InsertObject::make_alias(const std::vector<FRMFIX>& fixedFrm, int vi
         // X=w1,w2,...,直線移動,0 (幅をピクセル指定)
         s += "X=";
         for (int i = vi_start; i <= vi_end; i++) {
-            s += std::to_string(fixedFrm[i].width) + ".000";
+            char buf[32];
+            snprintf(buf, sizeof(buf), "%.3f", fixedFrm[i].width);
+            s += buf;
             if (i < vi_end) s += ",";
         }
         s += ",直線移動,0\n";
         // Y=h1,h2,...,直線移動,0 (高さをピクセル指定)
         s += "Y=";
         for (int i = vi_start; i <= vi_end; i++) {
-            s += std::to_string(fixedFrm[i].height) + ".000";
+            char buf[32];
+            snprintf(buf, sizeof(buf), "%.3f", fixedFrm[i].height);
+            s += buf;
             if (i < vi_end) s += ",";
         }
         s += ",直線移動,0\n";
@@ -104,7 +113,9 @@ std::string InsertObject::make_alias_as_sub(const std::vector<FRMFIX>& fixedFrm,
     // X=x1,x2,...
     s += "X=";
     for (int i = vi_start; i <= vi_end; i++) {
-        s += std::to_string(fixedFrm[i].cx);
+        char buf[32];
+        snprintf(buf, sizeof(buf), "%.2f", fixedFrm[i].cx);
+        s += buf;
         if (i < vi_end) s += ",";
     }
     s += ",直線移動,0\n";
@@ -112,7 +123,9 @@ std::string InsertObject::make_alias_as_sub(const std::vector<FRMFIX>& fixedFrm,
     // Y=y1,y2,...
     s += "Y=";
     for (int i = vi_start; i <= vi_end; i++) {
-        s += std::to_string(fixedFrm[i].cy);
+        char buf[32];
+        snprintf(buf, sizeof(buf), "%.2f", fixedFrm[i].cy);
+        s += buf;
         if (i < vi_end) s += ",";
     }
 
@@ -122,7 +135,9 @@ std::string InsertObject::make_alias_as_sub(const std::vector<FRMFIX>& fixedFrm,
     // サイズ=s1,s2,...,直線移動,0
     s += "サイズ=";
     for (int i = vi_start; i <= vi_end; i++) {
-        s += std::to_string((int)fixedFrm[i].scale);
+        char buf[32];
+        snprintf(buf, sizeof(buf), "%.3f", fixedFrm[i].scale);
+        s += buf;
         if (i < vi_end) s += ",";
     }
     s += ",直線移動,0\n";
@@ -303,10 +318,10 @@ bool InsertObject::ExportToFile(
     return wrote && written == p.text.size();
 }
 
-cv::Point InsertObject::getCenter(const cv::Rect2d& box) {
-    return cv::Point(
-        (int)((box.tl().x + box.br().x) / 2),
-        (int)((box.tl().y + box.br().y) / 2)
+cv::Point2d InsertObject::getCenter(const cv::Rect2d& box) {
+    return cv::Point2d(
+        (box.tl().x + box.br().x) / 2.0,
+        (box.tl().y + box.br().y) / 2.0
     );
 }
 
@@ -344,21 +359,21 @@ void InsertObject::interpolate(std::vector<cv::Rect2d> &rect_list, std::vector<b
     {
         int v_idx = inter_list[f];
 
-        cv::Point prevC(getCenter(rect_list[v_idx - 1]));
-        int prevW = (int)rect_list[v_idx - 1].width;
-        int prevH = (int)rect_list[v_idx - 1].height;
+        cv::Point2d prevC = getCenter(rect_list[v_idx - 1]);
+        double prevW = rect_list[v_idx - 1].width;
+        double prevH = rect_list[v_idx - 1].height;
 
-        cv::Point nextC(getCenter(rect_list[v_idx + 1]));
-        int nextW = (int)rect_list[v_idx + 1].width;
-        int nextH = (int)rect_list[v_idx + 1].height;
+        cv::Point2d nextC = getCenter(rect_list[v_idx + 1]);
+        double nextW = rect_list[v_idx + 1].width;
+        double nextH = rect_list[v_idx + 1].height;
 
-        int nowW = (prevW + nextW) / 2;
-        int nowH = (prevH + nextH) / 2;
-        int now_cx = (prevC.x + nextC.x) / 2;
-        int now_cy = (prevC.y + nextC.y) / 2;
+        double nowW = (prevW + nextW) / 2.0;
+        double nowH = (prevH + nextH) / 2.0;
+        double now_cx = (prevC.x + nextC.x) / 2.0;
+        double now_cy = (prevC.y + nextC.y) / 2.0;
 
-        rect_list[v_idx].x = now_cx - (nowW / 2);
-        rect_list[v_idx].y = now_cy - (nowH / 2);
+        rect_list[v_idx].x = now_cx - (nowW / 2.0);
+        rect_list[v_idx].y = now_cy - (nowH / 2.0);
         rect_list[v_idx].width = nowW;
         rect_list[v_idx].height = nowH;
         err_list[v_idx] = true;
@@ -376,7 +391,7 @@ void InsertObject::fix_frame(std::vector<cv::Rect2d> &rect_list, std::vector<boo
         std::vector<double> cxArr(rect_list.size()), cyArr(rect_list.size());
         std::vector<double> wArr(rect_list.size()), hArr(rect_list.size());
         for (size_t i = 0; i < rect_list.size(); i++) {
-            cv::Point c = getCenter(rect_list[i]);
+            cv::Point2d c = getCenter(rect_list[i]);
             cxArr[i] = c.x;
             cyArr[i] = c.y;
             wArr[i]  = rect_list[i].width;
@@ -407,8 +422,8 @@ void InsertObject::fix_frame(std::vector<cv::Rect2d> &rect_list, std::vector<boo
     }
 
     //Transform to AviUtl coordiante
-    int dX = frm_w / -2;
-    int dY = frm_h / -2;
+    double dX = frm_w / -2.0;
+    double dY = frm_h / -2.0;
     for (size_t i = 0; i < rect_list.size(); i++)
     {
         // Ignore Aspect Ratio がOFFのとき、リサイズのX,Y(幅・高さ)が画面をはみ出さないようクランプ
@@ -430,15 +445,15 @@ void InsertObject::fix_frame(std::vector<cv::Rect2d> &rect_list, std::vector<boo
         }
 
         FRMFIX buf;
-        cv::Point center(getCenter(rect_list[i]));
+        cv::Point2d center = getCenter(rect_list[i]);
         buf.cx = center.x + dX;
         buf.cy = center.y + dY;
         if (invertPosition) {
             buf.cx = -buf.cx;
             buf.cy = -buf.cy;
         }
-        buf.width = (int)rect_list[i].width;
-        buf.height = (int)rect_list[i].height;
+        buf.width = rect_list[i].width;
+        buf.height = rect_list[i].height;
         buf.scale = std::max(rect_list[i].width, rect_list[i].height);
         buf.frame = (int)i + rangeStart;
         buf.found = err_list[i];
@@ -546,7 +561,7 @@ void InsertObject::ComputeSmoothPreview(
     outWidth.resize(rect_list.size());
     outHeight.resize(rect_list.size());
     for (size_t i = 0; i < rect_list.size(); i++) {
-        cv::Point c = getCenter(rect_list[i]);
+        cv::Point2d c = getCenter(rect_list[i]);
         outX[i] = c.x;
         outY[i] = c.y;
         outWidth[i] = rect_list[i].width;
