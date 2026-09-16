@@ -261,6 +261,15 @@ static void GetSmoothSettings(HWND hwnd, bool& enable, int& window, int& polyord
     polyorder = GetComboIntValue(GetDlgItem(hwnd, (int)IDC_Button::SgOrderCombo));
 }
 
+// Window > Polyorder のとき例外とする
+static bool ValidateSmoothSettings(HWND hwnd, bool enable, int window, int polyorder) {
+    if (!enable || polyorder < window) return true;
+    MessageBoxW(hwnd,
+        config->translate(config, L"Polyorder must be smaller than Window."),
+        L"Operation Error", MB_OK | MB_ICONWARNING);
+    return false;
+}
+
 LRESULT CALLBACK MainFrame::wnd_proc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lparam) {
     MainFrame* self = nullptr;
 
@@ -350,6 +359,14 @@ LRESULT CALLBACK MainFrame::wnd_proc(HWND hwnd, UINT message, WPARAM wparam, LPA
                         return 0;
                     }
 
+                    bool smoothEnable; int smoothWindow, smoothPolyorder;
+                    GetSmoothSettings(hwnd, smoothEnable, smoothWindow, smoothPolyorder);
+                    if (!ValidateSmoothSettings(hwnd, smoothEnable, smoothWindow, smoothPolyorder)) {
+                        self->m_during_operation = false;
+                        EnableOperationButtons(hwnd, TRUE);
+                        return 0;
+                    }
+
                     wchar_t filepath[MAX_PATH] = L"tracking.object";
                     OPENFILENAMEW ofn = {};
                     ofn.lStructSize = sizeof(ofn);
@@ -368,8 +385,6 @@ LRESULT CALLBACK MainFrame::wnd_proc(HWND hwnd, UINT message, WPARAM wparam, LPA
                     bool ignoreAspectRatio = (bool)GetWindowLongPtr(GetDlgItem(hwnd, (int)IDC_Button::IgnoreAspectRatio), GWLP_USERDATA);
                     bool invertPosition = (bool)GetWindowLongPtr(GetDlgItem(hwnd, (int)IDC_Button::InvertPosition), GWLP_USERDATA);
                     bool asSubFilter = (bool)GetWindowLongPtr(GetDlgItem(hwnd, (int)IDC_Button::AsSubFilter), GWLP_USERDATA);
-                    bool smoothEnable; int smoothWindow, smoothPolyorder;
-                    GetSmoothSettings(hwnd, smoothEnable, smoothWindow, smoothPolyorder);
                     bool ok = InsertObject::ExportToFile(
                         self->m_tracker.Results(),
                         self->m_tracker.Found(),
@@ -563,6 +578,12 @@ LRESULT CALLBACK MainFrame::wnd_proc(HWND hwnd, UINT message, WPARAM wparam, LPA
                     }
                     bool smoothEnable; int smoothWindow, smoothPolyorder;
                     GetSmoothSettings(hwnd, smoothEnable, smoothWindow, smoothPolyorder);
+                    if (!ValidateSmoothSettings(hwnd, smoothEnable, smoothWindow, smoothPolyorder)) {
+                        SetFocus(nullptr);
+                        self->m_during_operation = false;
+                        EnableOperationButtons(hwnd, TRUE);
+                        return 0;
+                    }
 
                     std::vector<double> x, y, width, height, smoothX, smoothY, smoothWidth, smoothHeight;
                     InsertObject::ComputeSmoothPreview(
@@ -597,6 +618,12 @@ LRESULT CALLBACK MainFrame::wnd_proc(HWND hwnd, UINT message, WPARAM wparam, LPA
                     bool asSubFilter = (bool)GetWindowLongPtr(GetDlgItem(hwnd, (int)IDC_Button::AsSubFilter), GWLP_USERDATA);
                     bool smoothEnable; int smoothWindow, smoothPolyorder;
                     GetSmoothSettings(hwnd, smoothEnable, smoothWindow, smoothPolyorder);
+                    if (!ValidateSmoothSettings(hwnd, smoothEnable, smoothWindow, smoothPolyorder)) {
+                        SetFocus(nullptr);
+                        self->m_during_operation = false;
+                        EnableOperationButtons(hwnd, TRUE);
+                        return 0;
+                    }
                     bool ok = InsertObject::Insert(
                         self->m_tracker.Results(),
                         self->m_tracker.Found(),
