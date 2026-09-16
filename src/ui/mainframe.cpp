@@ -564,15 +564,15 @@ LRESULT CALLBACK MainFrame::wnd_proc(HWND hwnd, UINT message, WPARAM wparam, LPA
                     bool smoothEnable; int smoothWindow, smoothPolyorder;
                     GetSmoothSettings(hwnd, smoothEnable, smoothWindow, smoothPolyorder);
 
-                    std::vector<double> x, y, width, height, smoothX, smoothY;
+                    std::vector<double> x, y, width, height, smoothX, smoothY, smoothWidth, smoothHeight;
                     InsertObject::ComputeSmoothPreview(
                         self->m_tracker.Results(), self->m_tracker.Found(),
                         smoothEnable, smoothWindow, smoothPolyorder,
-                        x, y, width, height, smoothX, smoothY);
+                        x, y, width, height, smoothX, smoothY, smoothWidth, smoothHeight);
 
                     // Numeric Dataウィンドウが開いている間は操作系ボタンを無効化したままにし、
                     // WM_APP_NUMERIC_DATA_CLOSED(ウィンドウ破棄時の通知)で解除する
-                    NumericDataDlg::Create(hwnd, self->m_hInst, self->m_tracker.RangeStart(), x, y, width, height, smoothX, smoothY);
+                    NumericDataDlg::Create(hwnd, self->m_hInst, self->m_tracker.RangeStart(), x, y, width, height, smoothX, smoothY, smoothWidth, smoothHeight);
                     SetFocus(nullptr);
                     return 0;
                 }

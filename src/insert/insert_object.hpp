@@ -64,7 +64,9 @@ public:
         std::vector<double>& outWidth,
         std::vector<double>& outHeight,
         std::vector<double>& outSmoothX,
-        std::vector<double>& outSmoothY
+        std::vector<double>& outSmoothY,
+        std::vector<double>& outSmoothWidth,
+        std::vector<double>& outSmoothHeight
     );
 private:
     InsertObject() = delete;

@@ -45,7 +45,8 @@ void NumericDataDlg::Create(
     HWND parent, HINSTANCE hInst, int rangeStart,
     const std::vector<double>& x, const std::vector<double>& y,
     const std::vector<double>& width, const std::vector<double>& height,
-    const std::vector<double>& smoothX, const std::vector<double>& smoothY)
+    const std::vector<double>& smoothX, const std::vector<double>& smoothY,
+    const std::vector<double>& smoothWidth, const std::vector<double>& smoothHeight)
 {
     INITCOMMONCONTROLSEX icc = {};
     icc.dwSize = sizeof(icc);
@@ -72,7 +73,7 @@ void NumericDataDlg::Create(
     auto DIP = [dpi](int dip) { return utils::FromDIP(dip, dpi); };
 
     bool hasSmooth = !smoothX.empty();
-    int  winW = hasSmooth ? 650 : 370;
+    int  winW = hasSmooth ? 900 : 370;
     int  winH = 500;
 
     HWND hwnd = CreateWindowExW(
@@ -113,10 +114,14 @@ void NumericDataDlg::Create(
     AddColumn(3, L"width", 90);
     AddColumn(4, L"height", 90);
     if (hasSmooth) {
-        AddColumn(5, L"smooth_x", 100);
-        AddColumn(6, L"smooth_y", 100);
-        AddColumn(7, L"diff_x", 90);
-        AddColumn(8, L"diff_y", 90);
+        AddColumn(5,  L"smooth_x", 100);
+        AddColumn(6,  L"smooth_y", 100);
+        AddColumn(7,  L"smooth_width", 100);
+        AddColumn(8,  L"smooth_height", 100);
+        AddColumn(9,  L"diff_x", 90);
+        AddColumn(10, L"diff_y", 90);
+        AddColumn(11, L"diff_width", 90);
+        AddColumn(12, L"diff_height", 90);
     }
 
     for (size_t i = 0; i < x.size(); i++) {
@@ -136,10 +141,14 @@ void NumericDataDlg::Create(
         SetCell(3, width[i]);
         SetCell(4, height[i]);
         if (hasSmooth) {
-            SetCell(5, smoothX[i]);
-            SetCell(6, smoothY[i]);
-            SetCell(7, x[i] - smoothX[i]);
-            SetCell(8, y[i] - smoothY[i]);
+            SetCell(5,  smoothX[i]);
+            SetCell(6,  smoothY[i]);
+            SetCell(7,  smoothWidth[i]);
+            SetCell(8,  smoothHeight[i]);
+            SetCell(9,  x[i] - smoothX[i]);
+            SetCell(10, y[i] - smoothY[i]);
+            SetCell(11, width[i] - smoothWidth[i]);
+            SetCell(12, height[i] - smoothHeight[i]);
         }
     }
 

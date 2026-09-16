@@ -9,7 +9,8 @@ public:
         HWND parent, HINSTANCE hInst, int rangeStart,
         const std::vector<double>& x, const std::vector<double>& y,
         const std::vector<double>& width, const std::vector<double>& height,
-        const std::vector<double>& smoothX, const std::vector<double>& smoothY);
+        const std::vector<double>& smoothX, const std::vector<double>& smoothY,
+        const std::vector<double>& smoothWidth, const std::vector<double>& smoothHeight);
 
 private:
     HWND m_hwnd     = nullptr;

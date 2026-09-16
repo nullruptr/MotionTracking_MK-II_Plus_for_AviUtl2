@@ -547,7 +547,9 @@ void InsertObject::ComputeSmoothPreview(
     std::vector<double>& outWidth,
     std::vector<double>& outHeight,
     std::vector<double>& outSmoothX,
-    std::vector<double>& outSmoothY)
+    std::vector<double>& outSmoothY,
+    std::vector<double>& outSmoothWidth,
+    std::vector<double>& outSmoothHeight)
 {
     auto rect_list = results;
     auto err_list  = found;
@@ -571,11 +573,15 @@ void InsertObject::ComputeSmoothPreview(
     if (!smoothEnable) {
         outSmoothX.clear();
         outSmoothY.clear();
+        outSmoothWidth.clear();
+        outSmoothHeight.clear();
         return;
     }
 
     outSmoothX = outX;
     outSmoothY = outY;
+    outSmoothWidth = outWidth;
+    outSmoothHeight = outHeight;
 
     size_t segStart = 0;
     bool inSeg = false;
@@ -586,6 +592,8 @@ void InsertObject::ComputeSmoothPreview(
             size_t segEnd = i - 1;
             smoothSegment(outSmoothX, (int)segStart, (int)segEnd, smoothWindow, smoothPolyorder);
             smoothSegment(outSmoothY, (int)segStart, (int)segEnd, smoothWindow, smoothPolyorder);
+            smoothSegment(outSmoothWidth, (int)segStart, (int)segEnd, smoothWindow, smoothPolyorder);
+            smoothSegment(outSmoothHeight, (int)segStart, (int)segEnd, smoothWindow, smoothPolyorder);
             inSeg = false;
         }
     }
