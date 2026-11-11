@@ -201,3 +201,9 @@ config.*
 # Ignore compile_flags
 compile_flags.*
 compile_commands.*
+
+# .vscode
+.vscode
+
+# __pycache__
+__pycache__
