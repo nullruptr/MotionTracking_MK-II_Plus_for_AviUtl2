@@ -3,6 +3,8 @@
 
 namespace constants {
     constexpr const wchar_t* WindowName = L"MotionTracking MK-II Plus for AviUtl2";
+    constexpr const wchar_t* bgs = L"Pre-track:BGSubtraction";
+    constexpr const wchar_t* hsv = L"Pre-track:HSV Cvt";
     constexpr const wchar_t* version = L"${ver}";
     constexpr const wchar_t* APIerr = L"AviUtl2 API Error";
 }

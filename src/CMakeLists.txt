@@ -15,6 +15,8 @@ find_package(Eigen3 REQUIRED)
 target_sources(
     ${PROJECT_NAME}
     PRIVATE
+    filter/bgs.cpp
+    filter/hsv.cpp
     tracker/tracker.cpp
     ui/progress_dlg/progress_dlg.cpp
     ui/numeric_data/numeric_data.cpp

@@ -2,6 +2,8 @@
 #include "config.h"
 #include "aviutl2_sdk/filter2.h"
 #include "constants.hpp"
+#include "filter/bgs.hpp"
+#include "filter/hsv.hpp"
 #include <string>
 
 extern FILTER_PLUGIN_TABLE filter; // filter.cpp で定義
@@ -10,7 +12,6 @@ HINSTANCE hModuleDLL = nullptr;
 MainFrame* g_frame   = nullptr;
 EDIT_HANDLE* edit_handle = nullptr;
 
-static std::wstring verstr = std::wstring(constants::WindowName) + L" " + constants::version + L" by nullru";
 
 // beta48 or later
 constexpr DWORD REQUIRED_VERSION = 2004800;
@@ -46,7 +47,8 @@ EXTERN_C __declspec(dllexport) void RegisterPlugin(HOST_APP_TABLE* host)
     edit_handle = host->create_edit_handle();
 
     // フィルターを登録
-    // host->register_filter_plugin(&filter);
+    host->register_filter_plugin(&filter_bgs);
+    host->register_filter_plugin(&filter_hsv);
 
     g_frame = new MainFrame(hModuleDLL, host, edit_handle); // ウィンドウ作成
 
