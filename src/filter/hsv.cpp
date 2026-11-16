@@ -42,6 +42,10 @@ FILTER_PLUGIN_TABLE filter_hsv = {
 
 //HSV Conversion filter
 bool hsv_func_proc_video(FILTER_PROC_VIDEO* video) {
+    extern EDIT_HANDLE* edit_handle;
+    if (edit_handle->get_edit_state() == EDIT_HANDLE::EDIT_STATE_SAVE) {
+        return true;
+    }
 
     int w, h;
     w = video->object->width;
