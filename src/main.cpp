@@ -1,3 +1,4 @@
+#include <cstdint> // <- ないとコンパイルできない
 #include "main.hpp"
 #include "config.h"
 #include "aviutl2_sdk/filter2.h"
@@ -14,7 +15,7 @@ EDIT_HANDLE* edit_handle = nullptr;
 
 
 // beta48 or later
-constexpr DWORD REQUIRED_VERSION = 2004800;
+constexpr DWORD REQUIRED_VERSION = 2011802;
 
 // いつもの外部公開
 COMMON_PLUGIN_TABLE common_plugin_table = {
@@ -32,9 +33,11 @@ EXTERN_C __declspec(dllexport) DWORD RequiredVersion() {
 }
 
 EXTERN_C __declspec(dllexport) bool InitializePlugin(DWORD version) {
+    // 簡易バージョン確認
+    // MessageBoxW(nullptr, std::to_wstring(version).c_str(), L"version", MB_OK);
     if (version < REQUIRED_VERSION) {
         MessageBoxW(nullptr,
-            L"AviUtl ExEdit2 version 2.0beta48 or later is required.",
+            L"AviUtl ExEdit2 version 2.1.18b or later is required.",
             constants::WindowName, MB_OK | MB_ICONERROR);
         return false;
     }

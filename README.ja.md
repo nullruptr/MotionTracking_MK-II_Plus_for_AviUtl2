@@ -7,8 +7,8 @@ AviUtl ExEdit2 でオブジェクトトラッキングを行うプラグイン
 - AVX2をサポートしたCPU
 - Windows 10以降のOS
 - DirectX11.3 が利用できる環境
-- AviUtl ExEdit2 version 2.0beta48 以降
-- AviUtl ExEdit2 version 2.1.0 にて動作確認済み。
+- AviUtl ExEdit2 version 2.1.18b 以降
+- AviUtl ExEdit2 version 2.1.18b にて動作確認済み。
 
 ## インストール
 

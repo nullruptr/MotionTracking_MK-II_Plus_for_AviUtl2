@@ -7,8 +7,8 @@ AviUtl ExEdit2 object tracking (rubbish) plugin based on LKT/optical flow.
 - CPU with AVX2 support
 - Windows 10 or later
 - DirectX11.3 support
-- AviUtl ExEdit2 version 2.0beta48 or later
-- Tested with AviUtl ExEdit2 version 2.1.0
+- AviUtl ExEdit2 version 2.1.18b or later
+- Tested with AviUtl ExEdit2 version 2.1.18b
 
 ## Installation
 
