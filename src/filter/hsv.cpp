@@ -1,17 +1,20 @@
 #include "hsv.hpp"
 #include "constants.hpp"
 #include <memory>
+#include <opencv2/imgproc.hpp>
 #include <vector>
 #include <opencv2/opencv.hpp>
 
 enum class hsv_id : int {
     hsv = 0,
-    hue_only = 1,
-    saturation_only = 2,
-    value_only = 3
+    hsv_aviutl = 1,
+    hue_only = 2,
+    saturation_only = 3,
+    value_only = 4
 };
 static FILTER_ITEM_SELECT::ITEM hsv_check_name[] {
     { L"HSV", static_cast<int>(hsv_id::hsv) },
+    { L"HSV (AviUtl)", static_cast<int>(hsv_id::hsv_aviutl) },
     { L"Hue only", static_cast<int>(hsv_id::hue_only) },
     { L"Saturation only", static_cast<int>(hsv_id::saturation_only) },
     { L"Value only", static_cast<int>(hsv_id::value_only) },
@@ -76,6 +79,10 @@ bool hsv_func_proc_video(FILTER_PROC_VIDEO* video) {
     }
 
     cv::Mat outImg_alpha;
+    // AviUtl2: R=H, G=S, B=V
+    // AviUtl : R=V, G=S, B=H
+    // AviUtl が BGR バッファに入れていたようなので、そのための対応
+    if (check == hsv_id::hsv_aviutl) {cv::cvtColor(outImg, outImg, cv::COLOR_RGB2BGR);}
     cv::cvtColor(outImg, outImg_alpha, cv::COLOR_RGB2RGBA); // alpha 追加
     video->set_image_data(reinterpret_cast<const PIXEL_RGBA*>(outImg_alpha.data), w, h);
     return true;
