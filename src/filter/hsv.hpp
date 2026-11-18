@@ -6,5 +6,5 @@
 #include "aviutl2_sdk/plugin2.h"
 
 static std::wstring verstr_hsv = std::wstring(constants::hsv) + L" " + constants::version + L" by nullru";
-static const std::wstring hsv_label = std::wstring(constants::WindowName) + L"\\Pre-track";
+static const std::wstring hsv_label = std::wstring(constants::WindowName);
 extern FILTER_PLUGIN_TABLE filter_hsv;
