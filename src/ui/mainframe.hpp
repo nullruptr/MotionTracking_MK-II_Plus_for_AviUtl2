@@ -36,7 +36,8 @@ enum class IDC_Button : int {
     SgWindowCombo,
     SgOrderCombo,
     NumericData,
-    Pretrack
+    Pretrack,
+    EditResult
 };
 
 // SGフィルタの強さ

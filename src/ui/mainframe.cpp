@@ -4,6 +4,7 @@
 #include "progress_dlg/progress_dlg.hpp"
 #include "numeric_data/numeric_data.hpp"
 #include "pre_track/pre_track.hpp"
+#include "edit_result/edit_result.hpp"
 #include "aviutl2_sdk/plugin2.h"
 #include <windows.h>
 #include <commdlg.h>
@@ -27,8 +28,6 @@ std::vector<bool> track_found;
 std::vector<cv::Rect2d> track_result;
 
 
-constexpr const wchar_t* track_method[] = { L"MIL", L"KCF", L"CSRT", L"DaSiamRPN", L"Nano", L"Vit"};
-constexpr int METHOD_N = sizeof(track_method) / sizeof(track_method[0]);
 
 const wchar_t* sg_strength_options[] = { L"Weak", L"Medium", L"Strong", L"Custom" };
 const int SG_STRENGTH_N = sizeof(sg_strength_options) / sizeof(sg_strength_options[0]);
@@ -103,6 +102,7 @@ static void EnableOperationButtons(HWND hwnd, BOOL enable) {
         IDC_Button::Pretrack,
         IDC_Button::SelectObject,
         IDC_Button::Analyze,
+        IDC_Button::EditResult,
         IDC_Button::ViewResult,
         IDC_Button::ClearResult,
         IDC_Button::NumericData,
@@ -204,6 +204,10 @@ LRESULT CALLBACK MainFrame::wnd_proc(HWND hwnd, UINT message, WPARAM wparam, LPA
             return 0;
         case WM_APP_NUMERIC_DATA_CLOSED:
             // NumericDataDlgが閉じられた通知
+            EnableOperationButtons(hwnd, TRUE);
+            return 0;
+        case WM_APP_EDITRESULT_CLOSED:
+            // EditResultが閉じられた通知
             EnableOperationButtons(hwnd, TRUE);
             return 0;
         case WM_APP_PRETRACK_CLOSED:
@@ -349,6 +353,23 @@ LRESULT CALLBACK MainFrame::wnd_proc(HWND hwnd, UINT message, WPARAM wparam, LPA
                     if (!isDetail) {
                         SendMessage(hWindowCombo, CB_SETCURSEL, sg_strength_presets[strengthSel].windowIndex, 0);
                         SendMessage(hOrderCombo, CB_SETCURSEL, sg_strength_presets[strengthSel].orderIndex, 0);
+                    }
+                    SetFocus(nullptr);
+                    return 0;
+                }
+                case IDC_Button::EditResult:
+                {
+                    EnableOperationButtons(hwnd, FALSE);
+                    if (!self->m_tracker.HasResult()) {
+                        MessageBoxA(nullptr, "No tracking result found", "Operational Error", MB_OK);
+                        SetFocus(nullptr);
+                        EnableOperationButtons(hwnd, TRUE);
+                        return 0;
+                    }
+                    // 閉じると WM_APP_EDITRESULT_CLOSED でボタンが戻る
+                    int method = static_cast<int>(SendMessage(GetDlgItem(hwnd, (int)IDC_Button::TrackingMethodCombo), CB_GETCURSEL, 0, 0));
+                    if (!EditResult::Create(hwnd, &self->m_tracker, self->m_hInst, self->m_edit_handle, self->m_hueValue, self->m_wndScale, method)) {
+                        EnableOperationButtons(hwnd, TRUE);
                     }
                     SetFocus(nullptr);
                     return 0;

@@ -69,6 +69,8 @@ public:
     bool Analyze2(EDIT_HANDLE* edit, TrackingMethod method);
     void Clear(ClearMode mode = ClearMode::Full);
     bool SelectObject(EDIT_HANDLE* edit, int hueValue, double wndScale);
+    // 指定位置の結果を書き換える
+    void SetResult(int pos, const cv::Rect2d& rect);
     // フレーム選択範囲を取得 (未選択なら 0~最大フレーム)
     RangeResult GetSelectRange(EDIT_HANDLE* edit);
     // トラッキング結果をトラックバー付きウィンドウでプレビュー表示
@@ -78,6 +80,7 @@ public:
     const std::vector<bool>&       Found()      const { return m_track_found; }
     bool HasResult()  const { return !m_track_result.empty(); }
     int  RangeStart() const { return m_range.start; }
+    int  RangeEnd()   const { return m_range.end; }
     PreTrackSettings& PreTrackParams() { return m_pretrack; }
 
     // 解析情報をプログレスバーに渡すため

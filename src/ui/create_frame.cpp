@@ -8,8 +8,6 @@
 extern LOG_HANDLE*    logger;
 extern CONFIG_HANDLE* config;
 
-constexpr const wchar_t* track_method[] = { L"MIL", L"KCF", L"CSRT", L"DaSiamRPN", L"Nano", L"Vit" };
-constexpr int METHOD_N = sizeof(track_method) / sizeof(track_method[0]);
 
 constexpr const wchar_t* sg_window_options[] = { L"3", L"5", L"7", L"9", L"11" };
 constexpr int SG_WINDOW_N = sizeof(sg_window_options) / sizeof(sg_window_options[0]);
@@ -254,6 +252,21 @@ void MainFrame::CreateControls() {
         m_hInst,
         nullptr);
     SendMessage(button1, WM_SETFONT, (WPARAM)hfont, TRUE);
+
+    y_pos += item_height + DIP(5);
+
+    // Edit Result ボタンを作成
+    HWND button_edit_result = CreateWindowEx(
+        0,
+        WC_BUTTON,
+        config->translate(config, L"Edit Result"),
+        WS_VISIBLE | WS_CHILD | BS_OWNERDRAW,
+        DIP(10), y_pos, DIP(300), item_height,
+        m_hwnd,
+        (HMENU)IDC_Button::EditResult,
+        m_hInst,
+        nullptr);
+    SendMessage(button_edit_result, WM_SETFONT, (WPARAM)hfont, TRUE);
 
     y_pos += item_height + DIP(5);
 

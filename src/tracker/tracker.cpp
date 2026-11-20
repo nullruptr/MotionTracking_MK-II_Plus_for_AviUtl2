@@ -23,6 +23,12 @@ void Tracker::SetBox(cv::Rect2d box) {
     m_boundingBox = box;
 }
 
+void Tracker::SetResult(int pos, const cv::Rect2d& rect) {
+    if (pos < 0 || static_cast<size_t>(pos) >= m_track_result.size()) return;
+    m_track_result[pos] = rect;
+    m_track_found[pos]  = true;
+}
+
 RangeResult Tracker::GetSelectRange(EDIT_HANDLE* edit_handle) {
     RangeResult range;
     edit_handle->call_edit_section_param(&range, [](void* param, EDIT_SECTION* edit) {

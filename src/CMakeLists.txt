@@ -21,6 +21,8 @@ target_sources(
     ui/progress_dlg/progress_dlg.cpp
     ui/numeric_data/numeric_data.cpp
     ui/pre_track/pre_track.cpp
+    ui/edit_result/edit_result.cpp
+    ui/result_list/result_list.cpp
     ui/mainframe.cpp
     ui/create_frame.cpp
     ui/ownerdraw.cpp
@@ -38,6 +40,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 )
 target_link_libraries(${PROJECT_NAME} PRIVATE
     comctl32
+    msimg32
     comdlg32
     shell32
     dwmapi
