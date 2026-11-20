@@ -20,6 +20,7 @@ target_sources(
     tracker/tracker.cpp
     ui/progress_dlg/progress_dlg.cpp
     ui/numeric_data/numeric_data.cpp
+    ui/pre_track/pre_track.cpp
     ui/mainframe.cpp
     ui/create_frame.cpp
     ui/ownerdraw.cpp

@@ -2,6 +2,7 @@
 #include "aviutl2_sdk/config2.h"
 #include "aviutl2_sdk/plugin2.h"
 #include "constants.hpp"
+#include "ui/pre_track/pre_track.hpp"
 #include "opencv2/highgui.hpp"
 #include <cstddef>
 #include <string>
@@ -22,6 +23,22 @@ void Tracker::SetBox(cv::Rect2d box) {
     m_boundingBox = box;
 }
 
+RangeResult Tracker::GetSelectRange(EDIT_HANDLE* edit_handle) {
+    RangeResult range;
+    edit_handle->call_edit_section_param(&range, [](void* param, EDIT_SECTION* edit) {
+        auto* r = static_cast<RangeResult*>(param);
+        r->start = edit->info->select_range_start;
+        r->end = edit->info->select_range_end;
+
+        // 範囲が選択されていないとき、0~最大フレームを取得
+        if (r->start == -1 && r->end == -1) {
+            r->start = 0;
+            r->end = edit->info->frame_max;
+        }
+    });
+    return range;
+}
+
 bool Tracker::SelectObject(EDIT_HANDLE* edit_handle, int hueValue, double wndScale) {
 
     // 色相をメンバ変数に
@@ -33,17 +50,7 @@ bool Tracker::SelectObject(EDIT_HANDLE* edit_handle, int hueValue, double wndSca
 
 
     // フレーム選択範囲を取得
-    edit_handle->call_edit_section_param(&m_range, [](void* param, EDIT_SECTION* edit) {
-        auto* r = static_cast<RangeResult*>(param);
-        r->start = edit->info->select_range_start;
-        r->end = edit->info->select_range_end;
-
-        // 範囲が選択されていないとき、0~最大フレームを取得
-        if (r->start == -1 && r->end == -1) {
-            r->start = 0;
-            r->end = edit->info->frame_max;
-        }
-    });
+    m_range = GetSelectRange(edit_handle);
 
     logger->info(logger, std::format(L"range: start={}, end={}", m_range.start, m_range.end).c_str());
 
@@ -74,6 +81,12 @@ bool Tracker::SelectObject(EDIT_HANDLE* edit_handle, int hueValue, double wndSca
 
     edit_handle->wait_rendering_task();
     logger->info(logger, L"SelectObject: rendering complete");
+
+    // Pre-track のフィルタを適用
+    if (m_pretrack.bgs_enable || m_pretrack.hsv_enable) {
+        cv::Mat filtered = pretrack_apply(m_pretrack, edit_handle, m_range.start, m_range.end, m_range.start);
+        if (!filtered.empty()) m_image = filtered;
+    }
 
     if (m_image.empty()) {
         MessageBox(nullptr, config->translate(config, L"Failed to get image from AviUtl. Please make sure AviUtl is in a state where it can provide images."), constants::WindowName, MB_OK | MB_ICONERROR);
@@ -258,6 +271,12 @@ bool Tracker::Analyze(EDIT_HANDLE* edit, TrackingMethod method) {
             }
 
             edit->wait_rendering_task();
+
+            // Pre-track のフィルタを適用
+            if (frame + 1 <= m_range.end && (m_pretrack.bgs_enable || m_pretrack.hsv_enable)) {
+                cv::Mat filtered = pretrack_apply(m_pretrack, edit, m_range.start, m_range.end, frame + 1);
+                if (!filtered.empty()) image = filtered;
+            }
 
             if (!track_init) {
                 try {

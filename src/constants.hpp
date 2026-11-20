@@ -25,3 +25,5 @@ enum class IDC_Toolbar : UINT {
 constexpr UINT WM_APP_ANALYZE_DONE = WM_APP + 1;
 // NumericDataDlg が閉じられたときに、本体ウィンドウへ通知するメッセージ
 constexpr UINT WM_APP_NUMERIC_DATA_CLOSED = WM_APP + 2;
+// PreTrack が閉じられたときに、本体ウィンドウへ通知するメッセージ
+constexpr UINT WM_APP_PRETRACK_CLOSED = WM_APP + 3;

@@ -28,6 +28,19 @@ struct RenderParam {
     cv::Mat* image;
 };
 
+// Pre-track の設定値 (OK で確定したものを保持)
+struct PreTrackSettings {
+    bool bgs_enable   = false;
+    bool hsv_enable   = false;
+    int  bgs_range    = 30;
+    bool bgs_shadow   = false;
+    int  bgs_nmix     = 5;
+    int  bgs_bgratio  = 70;
+    int  bgs_d2t      = 400;
+    int  bgs_mode     = 3; // KNN(Mask)
+    int  hsv_mode     = 0;
+};
+
 enum class TrackingMethod {
     MIL       = 0,
     KCF       = 1,
@@ -56,6 +69,8 @@ public:
     bool Analyze2(EDIT_HANDLE* edit, TrackingMethod method);
     void Clear(ClearMode mode = ClearMode::Full);
     bool SelectObject(EDIT_HANDLE* edit, int hueValue, double wndScale);
+    // フレーム選択範囲を取得 (未選択なら 0~最大フレーム)
+    RangeResult GetSelectRange(EDIT_HANDLE* edit);
     // トラッキング結果をトラックバー付きウィンドウでプレビュー表示
     void ShowResultWindow(EDIT_HANDLE* edit, double wndScale);
 
@@ -63,6 +78,7 @@ public:
     const std::vector<bool>&       Found()      const { return m_track_found; }
     bool HasResult()  const { return !m_track_result.empty(); }
     int  RangeStart() const { return m_range.start; }
+    PreTrackSettings& PreTrackParams() { return m_pretrack; }
 
     // 解析情報をプログレスバーに渡すため
     std::atomic<int>    m_progress_current = 0;
@@ -76,6 +92,7 @@ private:
     // ShowResultWindow のトラックバーコールバック (引数固定のため、static)
     static void OnResultTrackbarChange(int pos, void* userdata);
     RangeResult m_range;
+    PreTrackSettings m_pretrack;
     // モデル選択
     cv::Ptr<cv::Tracker> CreateTracker(TrackingMethod method);
     cv::Mat RenderFrame(EDIT_HANDLE* edit, int frame);

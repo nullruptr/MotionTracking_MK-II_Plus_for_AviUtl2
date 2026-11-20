@@ -36,6 +36,7 @@ enum class IDC_Button : int {
     SgWindowCombo,
     SgOrderCombo,
     NumericData,
+    Pretrack
 };
 
 // SGフィルタの強さ
@@ -92,5 +93,4 @@ private:
     SystemColors m_colors;
 
     // 状態管理
-    bool m_during_operation = false;
 };

@@ -3,17 +3,13 @@
 #include "ownerdraw.hpp"
 #include "progress_dlg/progress_dlg.hpp"
 #include "numeric_data/numeric_data.hpp"
+#include "pre_track/pre_track.hpp"
 #include "aviutl2_sdk/plugin2.h"
 #include <windows.h>
 #include <commdlg.h>
 #include <commctrl.h>
 #include <shellapi.h>
 #include <winuser.h>
-
-extern FILTER_PLUGIN_TABLE filter;
-extern MainFrame* g_frame; // main.cpp で定義
-
-static std::string modelDir;
 
 LOG_HANDLE* logger = nullptr;
 CONFIG_HANDLE* config = nullptr;
@@ -26,10 +22,6 @@ std::condition_variable cov;
 cv::Mat ocvImage;
 // --
 
-// Obj Selection
-cv::Rect2d boundingBox;
-bool selectObj = false;
-bool startSel = false;
 // Analyze
 std::vector<bool> track_found;
 std::vector<cv::Rect2d> track_result;
@@ -61,128 +53,6 @@ EXTERN_C __declspec(dllexport) void InitializeConfig(CONFIG_HANDLE* handle) {
 
 EXTERN_C __declspec(dllexport) void UninitializePlugin() {
     cv::destroyAllWindows();
-}
-
-const char alias[] = u8R"(
-[Object]
-[Object.0]
-effect.name=フィルタオブジェクト
-[Object.1]
-effect.name=MotionTracker_M Filter
-)";
-
-// フィルタがつけられているタイムラインオブジェクトを探し、返す関数
-bool get_effected_object_layer_frame(EDIT_HANDLE* edit_handle, OBJECT_LAYER_FRAME* olf) {
-    edit_handle->call_edit_section_param(olf, [](void* message, EDIT_SECTION* edit) {
-        OBJECT_LAYER_FRAME* olf = (OBJECT_LAYER_FRAME*)message;
-        OBJECT_HANDLE found_obj = nullptr;
-        for (int layer = 0; layer <= edit->info->layer_max && !found_obj; layer++) {
-            for (int frame = 0; frame <= edit->info->frame_max; frame++) {
-                OBJECT_HANDLE obj = edit->find_object(layer, frame);
-                if (obj && edit->count_object_effect(obj, L"MotionTracker_M Filter") > 0) {
-                    found_obj = obj;
-                    break;
-                }
-            }
-        }
-
-        if (!found_obj) {
-            olf->layer = -1;
-            olf->start = -1;
-            olf->end = -1;
-            return;
-        }
-
-        *olf = edit->get_object_layer_frame(found_obj);
-    });
-
-    return olf->layer != -1;
-}
-
-// フィルタオブジェクトを現在のレイヤー・フレームに配置し、返す関数
-bool create_alias_object_and_set_olf(EDIT_HANDLE* edit_handle, OBJECT_LAYER_FRAME* olf) {
-    edit_handle->call_edit_section_param(olf, [](void* message, EDIT_SECTION* edit) {
-        OBJECT_LAYER_FRAME* olf = (OBJECT_LAYER_FRAME*)message;
-        if (edit->create_object_from_alias(alias, edit->info->layer, edit->info->frame, 10)) {
-            logger->log(logger, L"create alias object");
-            OBJECT_HANDLE obj = edit->find_object(edit->info->layer, edit->info->frame);
-            if (obj) {
-                *olf = edit->get_object_layer_frame(obj);
-            } else {
-                logger->warn(logger, L"object not found after create");
-                olf->layer = -1;
-                olf->start = -1;
-                olf->end = -1;
-            }
-        } else {
-            logger->warn(logger, L"create alias failed");
-            olf->layer = -1;
-            olf->start = -1;
-            olf->end = -1;
-        }
-    });
-
-    return olf->layer != -1;
-}
-
-static std::mutex g_mutex;
-
-// ユーザーの手でトラッキング領域が変更されたときに呼び出し、描画しなおす
-static void update_object_selection_window(int x1, int y1, int x2, int y2)
-{
-    std::lock_guard<std::mutex> lg(g_mutex);
-
-    //update only if visible
-    if(!static_cast<bool>(cv::getWindowProperty("Object Selection", cv::WND_PROP_VISIBLE)))
-        return;
-
-    x1 = std::clamp(x1, 0, ocvImage.cols);
-    y1 = std::clamp(y1, 0, ocvImage.rows);
-    x2 = std::clamp(x2, 0, ocvImage.cols);
-    y2 = std::clamp(y2, 0, ocvImage.rows);
-
-    //draw the bounding box
-    auto displayFrame = ocvImage.clone();
-    cv::Rect2i rect(std::min(x1, x2), std::min(y1, y2), std::abs(x1 - x2), std::abs(y1 - y2));
-    cv::Mat renderFrame;
-    if (rect.area() > 0) {
-        renderFrame = displayFrame(rect);
-        renderFrame /= 2;
-        renderFrame += utils::hue_to_scalar(g_frame->hueValue()) / 2;
-    }
-    cv::imshow("Object Selection", displayFrame);
-}
-
-
-// Mouse callback function for object selection
-static void onMouse(int event, int x, int y, int, void* fp_v)
-{
-    switch (event)
-    {
-    case cv::EVENT_LBUTTONDOWN:
-        //set origin of the bounding box
-        startSel = true;
-        selectObj = false;
-        boundingBox.x = x;
-        boundingBox.y = y;
-        break;
-    case cv::EVENT_LBUTTONUP:
-        //set with and height of the bounding box
-        boundingBox.width = std::abs(x - boundingBox.x);
-        boundingBox.height = std::abs(y - boundingBox.y);
-        boundingBox.x = std::clamp(static_cast<double>(x), 0.0, boundingBox.x);
-        boundingBox.y = std::clamp(static_cast<double>(y), 0.0, boundingBox.y);
-        selectObj = true;
-        startSel = false;
-        break;
-    case cv::EVENT_MOUSEMOVE:
-
-        if (startSel && !selectObj)
-        {
-            update_object_selection_window(boundingBox.x, boundingBox.y, x, y);
-        }
-        break;
-    }
 }
 
 MainFrame::MainFrame(HINSTANCE hInst, HOST_APP_TABLE* host, EDIT_HANDLE* edit_handle)
@@ -227,10 +97,10 @@ MainFrame::MainFrame(HINSTANCE hInst, HOST_APP_TABLE* host, EDIT_HANDLE* edit_ha
 }
 
 // 操作系ボタンをまとめて有効/無効化する
-// (m_during_operation のbool判定だけでは、cv::waitKey等のメッセージポンプ経由の再入を
-//  防ぎきれないケースがあるため、OSレベルでクリックイベント自体を発生させないようにする)
+// (cv::waitKey等のメッセージポンプ経由の再入を防ぐため、OSレベルでクリックイベント自体を発生させないようにする)
 static void EnableOperationButtons(HWND hwnd, BOOL enable) {
     static const IDC_Button targets[] = {
+        IDC_Button::Pretrack,
         IDC_Button::SelectObject,
         IDC_Button::Analyze,
         IDC_Button::ViewResult,
@@ -330,12 +200,14 @@ LRESULT CALLBACK MainFrame::wnd_proc(HWND hwnd, UINT message, WPARAM wparam, LPA
         case WM_APP_ANALYZE_DONE:
             // ProgressDlgからの、バックグラウンド解析完了通知
             logger->info(logger, L"MainFrame: WM_APP_ANALYZE_DONE received");
-            self->m_during_operation = false;
             EnableOperationButtons(hwnd, TRUE);
             return 0;
         case WM_APP_NUMERIC_DATA_CLOSED:
             // NumericDataDlgが閉じられた通知
-            self->m_during_operation = false;
+            EnableOperationButtons(hwnd, TRUE);
+            return 0;
+        case WM_APP_PRETRACK_CLOSED:
+            // PreTrackが閉じられた通知
             EnableOperationButtons(hwnd, TRUE);
             return 0;
         case WM_COMMAND:
@@ -346,15 +218,9 @@ LRESULT CALLBACK MainFrame::wnd_proc(HWND hwnd, UINT message, WPARAM wparam, LPA
                     return 0;
                 case IDC_Menu::ExportObject:
                 {
-                    if (self->m_during_operation || self->m_tracker.m_analyzing) {
-                        MessageBoxW(hwnd, config->translate(config, L"Another operation is in progress."), L"Operation Error", MB_OK | MB_ICONWARNING);
-                        return 0;
-                    }
-                    self->m_during_operation = true;
                     EnableOperationButtons(hwnd, FALSE);
                     if (!self->m_tracker.HasResult()) {
                         MessageBoxW(hwnd, config->translate(config, L"No track data to save!"), L"Operation Error", MB_OK | MB_ICONWARNING);
-                        self->m_during_operation = false;
                         EnableOperationButtons(hwnd, TRUE);
                         return 0;
                     }
@@ -362,7 +228,6 @@ LRESULT CALLBACK MainFrame::wnd_proc(HWND hwnd, UINT message, WPARAM wparam, LPA
                     bool smoothEnable; int smoothWindow, smoothPolyorder;
                     GetSmoothSettings(hwnd, smoothEnable, smoothWindow, smoothPolyorder);
                     if (!ValidateSmoothSettings(hwnd, smoothEnable, smoothWindow, smoothPolyorder)) {
-                        self->m_during_operation = false;
                         EnableOperationButtons(hwnd, TRUE);
                         return 0;
                     }
@@ -377,7 +242,6 @@ LRESULT CALLBACK MainFrame::wnd_proc(HWND hwnd, UINT message, WPARAM wparam, LPA
                     ofn.lpstrDefExt = L"object";
                     ofn.Flags = OFN_OVERWRITEPROMPT | OFN_PATHMUSTEXIST;
                     if (!GetSaveFileNameW(&ofn)) {
-                        self->m_during_operation = false;
                         EnableOperationButtons(hwnd, TRUE);
                         return 0;
                     }
@@ -401,12 +265,10 @@ LRESULT CALLBACK MainFrame::wnd_proc(HWND hwnd, UINT message, WPARAM wparam, LPA
                     if (!ok) {
                         MessageBox(hwnd, TEXT("Failed to save Alias"), TEXT("Error"), MB_OK);
                     }
-                    self->m_during_operation = false;
                     EnableOperationButtons(hwnd, TRUE);
                     return 0;
                 }
                 default:
-                    self->m_during_operation = false;
                     break;
             }
             // File ボタン -> ボタン直下にポップアップメニューを表示
@@ -424,12 +286,6 @@ LRESULT CALLBACK MainFrame::wnd_proc(HWND hwnd, UINT message, WPARAM wparam, LPA
             }
             // Info
             if (LOWORD(wparam) == (UINT)IDC_Toolbar::Info) {
-                if (self->m_during_operation || self->m_tracker.m_analyzing) {
-                    MessageBoxW(hwnd, config->translate(config, L"Another operation is in progress."), L"Operation Error", MB_OK | MB_ICONWARNING);
-                    SetFocus(nullptr);
-                    return 0;
-                }
-                self->m_during_operation = true;
                 EnableOperationButtons(hwnd, FALSE);
 
                 std::wstring content =
@@ -462,7 +318,6 @@ LRESULT CALLBACK MainFrame::wnd_proc(HWND hwnd, UINT message, WPARAM wparam, LPA
                 TaskDialogIndirect(&tdc, nullptr, nullptr, nullptr);
 
                 SetFocus(nullptr);
-                self->m_during_operation = false;
                 EnableOperationButtons(hwnd, TRUE);
                 return 0;
             }
@@ -500,50 +355,39 @@ LRESULT CALLBACK MainFrame::wnd_proc(HWND hwnd, UINT message, WPARAM wparam, LPA
                 }
                 case IDC_Button::ViewResult:
                 {
-                    if (self->m_during_operation || self->m_tracker.m_analyzing) {
-                        MessageBoxW(hwnd, config->translate(config, L"Another operation is in progress."), L"Operation Error", MB_OK | MB_ICONWARNING);
-                        SetFocus(nullptr);
-                        return 0;
-                    }
-                    self->m_during_operation = true;
                     EnableOperationButtons(hwnd, FALSE);
                     if (!self->m_tracker.HasResult()) {
                         MessageBoxA(nullptr, "No tracking result found", "Operational Error", MB_OK);
                         SetFocus(nullptr);
-                        self->m_during_operation = false;
                         EnableOperationButtons(hwnd, TRUE);
                         return 0;
                     }
                     self->m_tracker.ShowResultWindow(self->m_edit_handle, self->m_wndScale);
                     SetFocus(nullptr);
-                    self->m_during_operation = false;
                     EnableOperationButtons(hwnd, TRUE);
+                    return 0;
+                }
+                case IDC_Button::Pretrack:
+                {
+                    EnableOperationButtons(hwnd, FALSE);
+                    // ウィンドウを閉じるとWM_APP_PRETRACK_CLOSEDでボタンが戻る
+                    if (!PreTrack::Create(hwnd, &self->m_tracker, self->m_hInst, self->m_edit_handle, self->m_wndScale)) {
+                        EnableOperationButtons(hwnd, TRUE);
+                    }
+                    SetFocus(nullptr);
                     return 0;
                 }
                 case IDC_Button::SelectObject:
                 {
-                    if (self->m_during_operation || self->m_tracker.m_analyzing) {
-                        MessageBoxW(hwnd, config->translate(config, L"Another operation is in progress."), L"Operation Error", MB_OK | MB_ICONWARNING);
-                        SetFocus(nullptr);
-                        return 0;
-                    }
-                    self->m_during_operation = true;
                     EnableOperationButtons(hwnd, FALSE);
                     logger->info(logger, L"SelectObject: start");
                     self->m_tracker.SelectObject(self->m_edit_handle, self->m_hueValue, self->m_wndScale);
                     SetFocus(nullptr);
-                    self->m_during_operation = false;
                     EnableOperationButtons(hwnd, TRUE);
                     return 0;
                 }
                 case IDC_Button::Analyze:
                 {
-                    if (self->m_during_operation || self->m_tracker.m_analyzing) {
-                        MessageBoxW(hwnd, config->translate(config, L"Another operation is in progress."), L"Operation Error", MB_OK | MB_ICONWARNING);
-                        SetFocus(nullptr);
-                        return 0;
-                    }
-                    self->m_during_operation = true;
                     EnableOperationButtons(hwnd, FALSE);
                     int sel = SendMessage(GetDlgItem(hwnd, (int)IDC_Button::TrackingMethodCombo),
                          CB_GETCURSEL, 0, 0);
@@ -553,7 +397,6 @@ LRESULT CALLBACK MainFrame::wnd_proc(HWND hwnd, UINT message, WPARAM wparam, LPA
                         ProgressDlg::Create(hwnd, &self->m_tracker, self->m_hInst, track_method[sel]);
                     }
                     SetFocus(nullptr);
-                    self->m_during_operation = false;
                     // Analyzeはバックグラウンドスレッドで継続するため、m_analyzingが解除されるまではボタンを戻さない
                     if (!self->m_tracker.m_analyzing) {
                         EnableOperationButtons(hwnd, TRUE);
@@ -562,17 +405,10 @@ LRESULT CALLBACK MainFrame::wnd_proc(HWND hwnd, UINT message, WPARAM wparam, LPA
                 }
                 case IDC_Button::NumericData:
                 {
-                    if (self->m_during_operation || self->m_tracker.m_analyzing) {
-                        MessageBoxW(hwnd, config->translate(config, L"Another operation is in progress."), L"Operation Error", MB_OK | MB_ICONWARNING);
-                        SetFocus(nullptr);
-                        return 0;
-                    }
-                    self->m_during_operation = true;
                     EnableOperationButtons(hwnd, FALSE);
                     if (!self->m_tracker.HasResult()) {
                         MessageBoxW(hwnd, config->translate(config, L"No track data."), L"Operation Error", MB_OK | MB_ICONWARNING);
                         SetFocus(nullptr);
-                        self->m_during_operation = false;
                         EnableOperationButtons(hwnd, TRUE);
                         return 0;
                     }
@@ -580,7 +416,6 @@ LRESULT CALLBACK MainFrame::wnd_proc(HWND hwnd, UINT message, WPARAM wparam, LPA
                     GetSmoothSettings(hwnd, smoothEnable, smoothWindow, smoothPolyorder);
                     if (!ValidateSmoothSettings(hwnd, smoothEnable, smoothWindow, smoothPolyorder)) {
                         SetFocus(nullptr);
-                        self->m_during_operation = false;
                         EnableOperationButtons(hwnd, TRUE);
                         return 0;
                     }
@@ -599,17 +434,10 @@ LRESULT CALLBACK MainFrame::wnd_proc(HWND hwnd, UINT message, WPARAM wparam, LPA
                 }
                 case IDC_Button::InsertObject:
                 {
-                    if (self->m_during_operation || self->m_tracker.m_analyzing) {
-                        MessageBoxW(hwnd, config->translate(config, L"Another operation is in progress."), L"Operation Error", MB_OK | MB_ICONWARNING);
-                        SetFocus(nullptr);
-                        return 0;
-                    }
-                    self->m_during_operation = true;
                     EnableOperationButtons(hwnd, FALSE);
                     if (!self->m_tracker.HasResult()) {
                         MessageBoxW(hwnd, config->translate(config, L"No track data."), L"Operation Error", MB_OK | MB_ICONWARNING);
                         SetFocus(nullptr);
-                        self->m_during_operation = false;
                         EnableOperationButtons(hwnd, TRUE);
                         return 0;
                     }
@@ -620,7 +448,6 @@ LRESULT CALLBACK MainFrame::wnd_proc(HWND hwnd, UINT message, WPARAM wparam, LPA
                     GetSmoothSettings(hwnd, smoothEnable, smoothWindow, smoothPolyorder);
                     if (!ValidateSmoothSettings(hwnd, smoothEnable, smoothWindow, smoothPolyorder)) {
                         SetFocus(nullptr);
-                        self->m_during_operation = false;
                         EnableOperationButtons(hwnd, TRUE);
                         return 0;
                     }
@@ -641,22 +468,14 @@ LRESULT CALLBACK MainFrame::wnd_proc(HWND hwnd, UINT message, WPARAM wparam, LPA
                             L"Failed to insert object.",
                             L"Insert failed", MB_OK | MB_ICONERROR);
                     SetFocus(nullptr);
-                    self->m_during_operation = false;
                     EnableOperationButtons(hwnd, TRUE);
                     return 0;
                 }
                 case IDC_Button::ClearResult:
                 {
-                    if (self->m_during_operation || self->m_tracker.m_analyzing) {
-                        MessageBoxW(hwnd, config->translate(config, L"Another operation is in progress."), L"Operation Error", MB_OK | MB_ICONWARNING);
-                        SetFocus(nullptr);
-                        return 0;
-                    }
-                    self->m_during_operation = true;
                     EnableOperationButtons(hwnd, FALSE);
                     self->m_tracker.Clear();
                     MessageBoxW(hwnd, L"Selection states, results and image cache reseted", L"INFO", MB_OK);
-                    self->m_during_operation = false;
                     EnableOperationButtons(hwnd, TRUE);
                     return 0;
                 }

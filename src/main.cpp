@@ -50,8 +50,8 @@ EXTERN_C __declspec(dllexport) void RegisterPlugin(HOST_APP_TABLE* host)
     edit_handle = host->create_edit_handle();
 
     // フィルターを登録
-    host->register_filter_plugin(&filter_bgs);
-    host->register_filter_plugin(&filter_hsv);
+    //host->register_filter_plugin(&filter_bgs);
+    //host->register_filter_plugin(&filter_hsv);
 
     g_frame = new MainFrame(hModuleDLL, host, edit_handle); // ウィンドウ作成
 

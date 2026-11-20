@@ -212,6 +212,21 @@ void MainFrame::CreateControls() {
 
     y_pos += item_height + DIP(5);
 
+    // Pretrack ボタンを作成
+    HWND button_pre_track= CreateWindowEx(
+        0,
+        WC_BUTTON,
+        config->translate(config, L"Pre-track"),
+        WS_VISIBLE | WS_CHILD | BS_OWNERDRAW,
+        DIP(10), y_pos, DIP(300), item_height,
+        m_hwnd,
+        (HMENU)IDC_Button::Pretrack,
+        m_hInst,
+        nullptr);
+    SendMessage(button_pre_track, WM_SETFONT, (WPARAM)hfont, TRUE);
+
+    y_pos += item_height + DIP(5);
+
     // Select Object ボタンを作成
     HWND button0 = CreateWindowEx(
         0,
