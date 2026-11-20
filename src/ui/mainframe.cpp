@@ -370,7 +370,6 @@ LRESULT CALLBACK MainFrame::wnd_proc(HWND hwnd, UINT message, WPARAM wparam, LPA
                 case IDC_Button::Pretrack:
                 {
                     EnableOperationButtons(hwnd, FALSE);
-                    // ウィンドウを閉じるとWM_APP_PRETRACK_CLOSEDでボタンが戻る
                     if (!PreTrack::Create(hwnd, &self->m_tracker, self->m_hInst, self->m_edit_handle, self->m_wndScale)) {
                         EnableOperationButtons(hwnd, TRUE);
                     }

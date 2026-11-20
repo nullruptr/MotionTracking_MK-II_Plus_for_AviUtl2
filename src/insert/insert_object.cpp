@@ -224,11 +224,14 @@ bool InsertObject::Insert(
                 ? make_alias_as_sub(*p->fixedFrm, g.vi_start, g.vi_end, p->ignoreAspectRatio)
                 : make_alias(*p->fixedFrm, g.vi_start, g.vi_end, p->ignoreAspectRatio);
                 bool inserted = false;
-                for (int i = 0; i < 100; i++) {
+                for (int i = 0; i < static_cast<int>(edit->info->layer_max); i++) {
                     OBJECT_HANDLE handle = edit->create_object_from_alias(
                         alias.c_str(), layer, g.start, g.end - g.start + 1);
                     if (handle) {
                         inserted = true;
+                        break;
+                    }
+                    if (layer > edit->info->layer_max) {
                         break;
                     }
                     layer += 1;
